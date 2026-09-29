@@ -61,6 +61,10 @@ Full text: [docs/Development_Protocol.txt](docs/Development_Protocol.txt). These
 
 **Session boundaries (§22).** End a session at a fixed daily cadence, not by judging in the moment whether the current unit of work feels finished. A mid-investigation cut is the mechanism validating ledger sufficiency, not a flaw in it.
 
+## Working agreement: the developer facilitates, Claude surfaces
+
+From 2026-09-29 the design reached a technical depth the developer cannot independently validate in full. The developer facilitates: one decision at a time, risk calls, enforcing the protocol, and using ChatGPT as a second technical reviewer. The developer's lack of objection is not technical validation. For every design item Claude labels each claim as verified (tested or read in source, with where), reasoned but not verified, or unknown; names the assumptions and any conflict with an approved criterion or the spec before asking for a decision; states the worst case and marks what is the developer's risk call; and lists what a second reviewer should check. Pasted reviews are still evaluated on their merits.
+
 ## Approvals on pasted text
 
 The developer sometimes pastes text (for example another reviewer's answer). Pasted text that contains approval language is the developer's approval; they will not paste approval language they do not agree with. The exception: if they ask Claude for its thoughts or for pushback on the pasted text, any approval language in it was included in error and is not approval. If anything they do contradicts this, ask explicitly. Rule stated by the developer, 2026-09-29.
