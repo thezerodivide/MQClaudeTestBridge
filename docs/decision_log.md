@@ -532,3 +532,17 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Worst case:** a bug in the check refuses to start a good build; pure-function tests cover it. Known cost: the command the developer types changes every build.
 - **Not in this item:** the MCP server's identity (next item).
 - Second reviewer's approval recorded from the "For Claude" section, including the plain-filename rule.
+
+**Addendum to DL-021, 2026-09-29 — design item 22 approved: build identity for the MCP server (Protocol §9).**
+
+1. A versioned entry script per test build, for example `mq_mcp-0.1.0-test.1.py`, with the version in one `version.py` (SemVer with `-test.N` pre-release identifiers).
+2. The same startup identity check as the bridge's: the script's own filename (from `__file__`) must match `version.py`, otherwise the server refuses to start; a plain `mq_mcp.py` is a release entry and requires a non-test version.
+3. `.mcp.json` points at the versioned entry and is updated as part of each test build handoff.
+4. The running process reports its own identity: `mq_status` includes `server_version` (always present, since it describes the process answering the call), and the server logs its version at startup.
+5. Whether Claude Code relaunches the server when `.mcp.json` changes stays Open; it does not affect the scheme.
+
+- **Amends design item 11:** `mq_status` gains `server_version` (always) and `bridge_version` (only when the bridge is alive, taken from the heartbeat, which already carries it). `bridge_version` was Claude's addition; the developer and the second reviewer accepted it, since one call then shows both builds (Protocol §9: easy to confirm the intended version). Both are additional fields; neither changes criterion 9's list.
+- **Why (a) over a constant entry with a version report:** it follows §9's unique-filename rule; the running process can outlive files changed on disk, so the filename says which build should launch and `server_version` says which build did. Known cost: a file rename in git and a `.mcp.json` edit on every test build.
+- **Deferred as its own item:** what the MCP server logs and where; the startup version line goes wherever that item puts the log.
+- **Verified:** `__file__` gives the running script's path (standard Python, testable locally). **Unverified:** relaunch behavior. **Worst case:** a bug in the check refuses to start a good build; pure-function tests cover it.
+- Second reviewer's approval recorded from the "For Claude" section.
