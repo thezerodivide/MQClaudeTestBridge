@@ -215,3 +215,16 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Open:** passing the gate is not the same as validating the design. Each finding rests on one run on the developer's installed build, with edge cases listed as untested in its own entry. The bridge itself is unbuilt and untested. The autoinv log path (`config\AutoInvite\autoinvite.log`) is still unchecked on disk. Phase 1's own gate is separate ("spellspree suite passes unattended; kill switch tested").
 - **Supersedes:** nothing.
 - **Source:** developer statement, 2026-09-29; DL-006 to DL-016.
+
+---
+
+### DL-018 — Phase 1, slice 1 (read-only bridge and MCP path): acceptance criteria
+
+- **Status:** In progress, 2026-09-29. Criteria are added here as the developer approves each one. Nothing is built for this slice yet.
+- **Requirement:** slice 1 is the first build of Phase 1: `claudebridge` with the file transport, `heartbeat.json`, `events.jsonl` fed by the catch-all listener, and the read-only commands `ping`, `eval`, `eval_many`; plus a minimal `mq-mcp` with `mq_status` and `mq_eval`. Nothing in it can change the game. The developer chose this order after confirming the spikes proved individual parts but not the assembled path (no spike touched the file transport, `mq.parse`, a JSON library, a `.mcp.json` launch, or the two-process setup). The developer approved the following criteria, one at a time:
+  1. **`ping` over the file transport.** With `claudebridge` running, writing `inbox\<seq>.json` with the command `ping` produces `outbox\<seq>.json` with the same sequence number, containing the bridge version, character name, zone and bridge state. Source: SPEC.md "MQ-side bridge (Lua)". Checked locally by running the request-handling logic against a fake game; the real transport and the real character and zone values are live-only. No reply-time limit is set (any value would be a first guess, Protocol §15).
+- **Design choices:** request-handling logic kept separate from the MacroQuest-facing code so it can be tested locally (Protocol §20).
+- **Implementation choices:** none decided.
+- **Open:** further criteria still to be settled (see later addenda).
+- **Supersedes:** nothing.
+- **Source:** SPEC.md; DL-010 to DL-016; developer approval, 2026-09-29.
