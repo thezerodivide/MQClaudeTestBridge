@@ -60,6 +60,14 @@ Full text: [docs/Development_Protocol.txt](docs/Development_Protocol.txt). These
 
 **Session boundaries (§22).** End a session at a fixed daily cadence, not by judging in the moment whether the current unit of work feels finished. A mid-investigation cut is the mechanism validating ledger sufficiency, not a flaw in it.
 
+## Commits and pushes
+
+- **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
+- **Commits that include code** (`.lua`, `.py`, macros, or anything that changes runtime behavior): ask first.
+- **Pushes:** always ask first, whatever the commit contains.
+
+This is the developer's rule from 2026-09-29, carried over from PTAutoRoute with one change: there, docs-only pushes did not need permission; here every push does.
+
 ## Related projects (Development Protocol §21)
 
 Other projects by this developer, same MacroQuest/Project Triune platform, checked for prior art before designing a new mechanism here.

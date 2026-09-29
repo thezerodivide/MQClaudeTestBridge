@@ -6,7 +6,7 @@ Each entry is structured into four labeled blocks per §2: **Requirement** (beha
 
 ## Active overrides index
 
-Entries below that supersede a specification item are indexed here so the supersession is visible without cross-referencing the whole log against the spec. Empty for now — nothing has superseded SPEC.md yet.
+Entries below that supersede a specification item are indexed here so the supersession is visible without cross-referencing the whole log against the spec. - **DL-014** SUPERSEDES SPEC.md's error-capturing `claudebridge/runner` (Architecture diagram, `lua_run`, `lua_reload`, `lua_status`, "Error capture", Phase 1 roadmap box): crashes are detected from the error chat text instead; the runner is out of v1.
 
 ---
 
@@ -62,3 +62,156 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Implementation choices:** n/a.
 - **Open:** whether a fake-tell injection (`/echo` of "Bob tells you, 'inv'") actually fires `mq.event` on this MacroQuest build is unresolved — this is the deciding factor for whether most of autoinv's Phase-1 tests are runnable with one character or need to wait for Phase 2's second character. See the ledger's Open implementation details and SPEC.md's "Risks and spikes" table.
 - **Source:** SPEC.md autoinv section ("What it does," "Facts that shape the tests").
+
+---
+
+### DL-006 — Phase 0 log path verification
+
+- **Status:** Confirmed, 2026-09-29. The spec's Environment table marked three paths "assumed" and the ledger tracked them as an open item, so Phase 0 began by checking them on disk. Nothing built; no code involved.
+- **Requirement:** Claude must be able to read the MacroQuest and EverQuest log files directly from this machine before Phase 1 begins (SPEC.md Roadmap, Phase 0). The Phase 0 result: the Lua scripts folder, the MacroQuest logs folder and the EverQuest logs folder all exist at the assumed locations and are readable, including the live EverQuest log while the game is running.
+- **Design choices:** the spec's Environment table now marks those three paths "confirmed" and records the real folder name `Logs` (capital L). Because scripts log to different places (PTAR and PTDeathRecovery under `Logs\`, autoinv to `config\AutoInvite\autoinvite.log`), the spec notes that `log_tail` and `log_search` need a configurable list of log locations, not a single folder. Because some logs are very large, they read from the end of a file or stream it.
+- **Implementation choices:** none.
+- **Open:** (1) No file in the MacroQuest `Logs` folder was found that records console or Lua `print()` output. Whether MacroQuest can be made to write it, and why it isn't now, is not established; it bears on the first Phase 1 spike. (2) Python 3.14.7 and the autoinv log path were not checked. (3) Whether Phase 0 satisfies its gate ("setup confirmed") is the developer's decision and has not been made.
+- **Source:** on-disk checks of the three folders, a live read of `eqlog_Kylaeris_multiclass.txt`, and a listing of the MacroQuest `Logs` folder, 2026-09-29. Spec updated in the Environment section.
+
+---
+
+### DL-007 — Documentation review before the Phase 1 spikes: console and print logging
+
+- **Status:** Confirmed, 2026-09-29. Developer's decision on ordering; findings are documentation-only, not live-tested.
+- **Requirement:** before the other Phase 1 spikes, the first step is a review of the MacroQuest documentation to answer the question DL-006 left open: can MacroQuest write console or Lua `print()` output to a file, and does anything in the Logs folder capture it?
+- **Design choices:** none yet. The finding narrows the first spike but does not settle it.
+- **Implementation choices:** docs were read from docs.macroquest.org through a summarizing fetch tool, so passages below are summaries, not verbatim reads. A web-search summary claimed `/mqlog` is "the primary tool for writing console output to log files"; the `/mqlog` page itself contradicts that, so the page was used, not the summary.
+- **Open:** findings from the docs: (1) `/mqlog <text>` logs only the text explicitly passed to it, to `MacroQuest.log` in `Logs` (`<macro>.mac.log` inside a macro); it does not capture other output. (2) `/mqconsole` (clear/toggle/show/hide) documents no file logging; its settings (ShowMacroQuestConsole, PersistentCommandHistory, MaxBufferLines, LocalEcho) do not either. (3) Lua docs: `print()` "has been redirected to write to the mq chat"; nothing about files, errors or tracebacks. (4) `mq.event` docs say the matcher text is "the same matcher text that everyone is used to from macro events"; they do not say which text sources feed it. Not established: whether `print()` output reaches any file, whether `mq.event` sees it, and how Lua errors are displayed. The docs are silent on all three, so they need a live test or a read of the MacroQuest source. `CHANGELOG.md` in the MQ root has no log-related entries.
+- **Source:** [/mqlog](https://docs.macroquest.org/reference/commands/mqlog/), [/mqconsole](https://docs.macroquest.org/reference/commands/mqconsole/), [Lua scripting](https://docs.macroquest.org/lua/), [Lua events and binds](https://docs.macroquest.org/lua/events-and-binds/), GitHub issue macroquest/macroquest#530.
+
+---
+
+### DL-008 — MacroQuest source review: print routing, event sources and logging
+
+- **Status:** Confirmed as a reading of source, 2026-09-29. Not live-tested. Follows DL-007, whose documentation review left these questions open.
+- **Requirement:** answer from the MacroQuest source, which the developer supplied at `references/MacroQuest Source` (git-ignored), what DL-007 could not: where Lua `print()` output goes, which text `mq.event` matches, and whether any of it reaches a log file.
+- **Design choices:** none. The findings bear on spike 1 (whether the bridge can see other scripts' `print()` output) but the spike is not closed by them.
+- **Implementation choices:** none.
+- **Open:** findings, all from `src/`: (1) `print()` is replaced in `plugins/lua/bindings/lua_Globals.cpp:45` and calls `WriteChatColorf("%s", USERCOLOR_CHAT_CHANNEL, ...)`; `printf` does the same. (2) `WriteChatColor` (`main/MQ2Utilities.cpp:129`) calls `PluginsWriteChatColor` (`main/MQPluginHandler.cpp:813`), which returns early if `gFilterMQ` is set (the flag `/squelch` and `/filter mq` set), then calls every module's `WriteChatColor`. (3) The Lua plugin's `OnWriteChatColor` (`plugins/lua/MQ2Lua.cpp:2402`) passes the line to the event processor of every running, non-dead, non-paused script, including scripts other than the one that printed. `OnIncomingChat` (line 2421) does the same for EverQuest chat. So by the source, a catch-all `mq.event` in one script would see another script's `print()` output, and an event pattern would match it. (4) The only debug logging on that path is `DebugSpew`, whose file flag is false there, so it goes to `OutputDebugString` only. `DebugSpewAlways` writes `Logs\DebugSpew.log` when `/spewfile` or `DebugSpewToFile=1` is set. I did not check what calls `DebugSpewAlways`. (5) Lua errors are also written through `WriteChatColorf` in red (`LuaCommon.h:22`, `LuaThread.cpp:239`), so they reach event matchers by the same route. (6) `MQ2Lua` already installs its own traceback error handler (`LuaThread.cpp:223`) and stores tracebacks in the Lua registry; this is relevant to spike 3 and has not been examined further. (7) The one file logger found that a script can drive is `/mqlog` (per DL-007). Not established: the source checkout's version against the installed build (the source has no version marker I could find, the installed `MQ2Lua.dll` is dated 2026-08-29), whether `/echo` reaches `WriteChatColor` (spike 5), and behavior when the script that prints is itself paused or squelched beyond what the code above shows.
+- **Source:** the files and lines cited above, in `references/MacroQuest Source/src`.
+
+**Addendum to DL-008, 2026-09-29 — source vs installed build.** The developer noted `/echo ${MacroQuest.Build}` prints `4` in game. In the source, `${MacroQuest.Build}` returns `gBuild` (`src/main/datatypes/MQ2MacroQuestType.cpp:100`), the build *target*, not a version: `BuildTarget` in `include/mq/base/BuildInfo.h` is Live=1, Test=2, Beta=3, Emu=4. So `4` says the installed build is the Emu target (consistent with Project Triune) and says nothing about the version. `${MacroQuest.BuildName}` would print `Emu`. To compare versions, the installed `resources\CHANGELOG.md` was compared with the source's `data/resources/CHANGELOG.md`: identical apart from line endings, newest entry 6/23/2026. That is evidence the source and the install come from the same release notes, not proof the code is identical (a changelog can lag the code, and the installed binaries are dated 2026-08-29). Version match: probable, not proven.
+
+**Second addendum to DL-008, 2026-09-29 — origin of the installed build.** The developer confirmed the installed MacroQuest came from the [rel-emu-rof2 release](https://github.com/macroquest/macroquest/releases/tag/rel-emu-rof2), by two routes: a browser history search (the only MacroQuest release page in the history), and the TAC release notes. TAC stopped bundling MacroQuest at [V1.7.2](https://github.com/gennro/TriuneAutocombat/releases?page=2#release-V1.7.2), and its release notes link to that same page, which is what prompted the developer to download MacroQuest directly. Status: confirmed by the developer from their own records; I did not verify it. What this does not settle: whether the source folder in `references/` is a checkout of that same release. That link rests on the changelog match in the first addendum and is unconfirmed by the developer.
+
+**Third addendum to DL-008, 2026-09-29 — origin of the source folder.** The developer downloaded "Source code (zip)" from the rel-emu-rof2 release page and unzipped it into `references/MacroQuest Source` (the developer wrote `resources/`; the folder that exists is `references/`, taken here as a slip). Status: confirmed by the developer's account. Together with the second addendum, the install and the source both come from the same release page, and their changelogs match. One residual gap: the developer did not say whether the release was re-published between installing and downloading the source zip, and I did not check the release page. The matching changelog is the evidence against that, not proof. Source-based findings in DL-008 are treated as applying to the installed build, still subject to live confirmation.
+
+---
+
+### DL-009 — Output capture is the bridge's job, because MacroQuest writes no log
+
+- **Status:** Confirmed, 2026-09-29. Developer's decision, after the documentation review (DL-007) and source review (DL-008).
+- **Requirement:** MacroQuest does not write console or Lua `print()` output to any file, so nothing Claude needs to read from that output can come from a MacroQuest log. Whatever Claude needs to read must be captured in Lua and written by our own code. This is why SPEC.md's bridge writes `events.jsonl`; the finding confirms that design rather than changing it. The review of the logs question is closed.
+- **Design choices:** none new. The existing design already has the bridge (and the runner and `testlog`) append observed output to `events.jsonl`. EverQuest logs, which do exist on disk, are still read directly.
+- **Implementation choices:** none decided here.
+- **Open:** closing the review does not close spike 1. The source says the bridge's `mq.event` matchers should see other scripts' `print()` output, but that has not been observed live. If it fails live, the spec's fallback applies: the runner and `testlog` write to `events.jsonl` directly. Also noted, not yet examined: SPEC.md's spellspree section says that script's own notes found `mq.event` did not fire for "You give…" or scribe lines but did for vendor price tells, which bears on spikes 1 and 5.
+- **Supersedes:** nothing. Consistent with SPEC.md "MQ-side bridge (Lua)".
+- **Source:** DL-006, DL-007, DL-008; developer statement, 2026-09-29.
+
+---
+
+### DL-010 — Spike 1 result: a catch-all `mq.event` hears other scripts' `print()` output
+
+- **Status:** Confirmed live, 2026-09-29, one run on the developer's installed build (rel-emu-rof2, per DL-008 addenda). Single observation, not a repeated test.
+- **Requirement:** answer the first Phase 1 spike: does a catch-all `mq.event` see `print()` output from other Lua scripts, or only EverQuest chat? Result: it sees it.
+- **Design choices:** none changed. SPEC.md's primary path holds (the bridge's catch-all event feeds `events.jsonl`); its fallback (the runner and `testlog` write directly) is not needed for this purpose.
+- **Implementation choices:** the test used two throwaway scripts in `MacroQuest\lua` (`spike1_listener.lua`: `mq.event('spike1_all', '#*#', ...)`, writing lines containing `SPIKE1` to a file, with `mq.doevents()` in a 100 ms loop; `spike1_sender.lua`: `print`, `printf`, then `mq.cmd('/echo ...')`, 500 ms apart). The listener's pattern `#*#` matched, which is the catch-all pattern this design needs.
+- **Open:** (1) Observed in `Logs\spike1_events.txt`: `09:01:55 | SPIKE1-A print() from a different script`, `09:01:56 | SPIKE1-B printf() from a different script`, `09:01:57 | SPIKE1-C /echo control line`. All three arrived, matching the source reading in DL-008. (2) Line C shows an `/echo` issued with `mq.cmd` from a script also reaches the event matchers. That is early evidence for spike 5 but not its answer, since spike 5 concerns an echoed line shaped like an EverQuest tell, typed by the user or sent by the bridge. (3) Not checked: events from a paused script, squelched output, and very high print rates (dropped or reordered lines). (4) The developer did not report whether red error text appeared in game; I did not ask.
+- **Supersedes:** nothing. Resolves the open item in DL-008 that spike 1 needed live confirmation.
+- **Source:** `Logs\spike1_events.txt` (contents above), read by Claude after the developer ran the test.
+
+**Addendum to DL-010, 2026-09-29 — console screenshot from the same run.** The developer reported no red error text appeared, and supplied a screenshot of the MQ chat window, which closes DL-010 Open item (4). The console showed, in order: `Running lua script 'spike1_listener' with PID 32`, `Running lua script 'spike1_sender' with PID 33`, the three `SPIKE1-` lines, `Ending lua script 'spike1_sender' with PID 33 and status 0` (the sender finished on its own), `No lua script matching "spoke1_listener" was found` (a typo in the developer's first stop command, so that stop did nothing), then `Ending running lua script 'spike1_listener' with PID 32` and `Ending lua script 'spike1_listener' with PID 32 and status -1` (the corrected stop). The typo did not affect the result, since the listener kept running until the corrected stop. Relevance to spike 2: these are messages `/lua` printed, showing a normal finish as status 0 and a manual stop as status -1. They are not values read from `${Lua.Script[name].Status}`, which spike 2 asks about and which remains unchecked. Also note: the `/lua` start/stop messages are themselves chat lines and would reach the bridge's catch-all event.
+
+---
+
+### DL-011 — Spike 2 result: what `${Lua.Script[...]}` reports on this build
+
+- **Status:** Confirmed live, 2026-09-29, one run of `spikes/spike2_run.mac` on the developer's installed build, read from `Logs\spike2_status.txt` (recorder polling every 250 ms, logging changes) plus the MQ console as shown in the developer's screenshots. An earlier run failed because the recorder had a path-escaping fault of Claude's making (LL-001), so only the second run has recorder data.
+- **Requirement:** answer spike 2: the exact values of `${Lua.Script[name].Status}`, and whether they can tell a finished script, a stopped script and a crashed script apart.
+- **Design choices:** none made here. One conflict with the spec is raised in Open and needs the developer's decision.
+- **Implementation choices:** none.
+- **Open:** Observed: (1) `Status` returned `RUNNING`, `PAUSED` and `EXITED`. `STARTING` was never observed (a script first appeared as `RUNNING`; a 250 ms poll may simply miss it). (2) Pause and resume showed as `PAUSED` then `RUNNING` within the poll interval. (3) A script that finished by itself (PID 46), one stopped with `/lua stop` (PIDs 45, 47) and one that crashed with a Lua error (PID 48) all ended as `EXITED`. Only the finished one had return values (`ReturnCount=2`, `Return` = `function: 0x00ce4258,target-done`, meaning the first "return value" is the chunk function itself and the script's own value is item 2). The stopped and crashed scripts showed `ReturnCount=0`, indistinguishable from each other through the TLO. The `/lua` console message also ended a crash and a manual stop with the same `status -1`; a natural finish showed `status 0`. (4) No `error` status exists in the TLO on this build; the source agrees (`LuaThread.h:48`: Starting, Running, Paused, Exited). (5) A crash does print red chat lines (`... SPIKE2 deliberate error`, `stack traceback:`, function and line), which by DL-010 the bridge's catch-all event should be able to hear; not yet tested with a real listener. (6) Look-up by name returned the current run of that name once it restarted, and by PID the old entry then returned nil. The source explains it: starting a script whose name has run before erases the old entry (`MQ2Lua.cpp:590`), so there is one entry per name and no stale-entry ambiguity. A script already running is not started again (`MQ2Lua.cpp:582`): `/lua run` on a running script prints "already running" and creates no new PID, so a reload must stop it first. (7) `${Lua.PIDs}` listed running and paused scripts and dropped exited ones; it always included PID 1, a script that was already running in the developer's session (not identified). Not tested: a name that has never run, `STARTING`, behavior after a stop that has not yet completed.
+- **Conflict for the developer (Protocol §1, not changed):** SPEC.md lines 84 and 101 say `lua_status` "detects crashed or finished scripts" and reports "running, finished or crashed" with the last error. Observed, `Status` cannot separate a crash from a stop. Possible sources for crash detection are the red error chat lines (spike 1 shows they reach the event matchers) or the runner's `pcall` (spike 3). Which to rely on is a design decision, not made here.
+- **Supersedes:** nothing yet; the spec lines above are unchanged pending the developer's decision.
+- **Source:** `Logs\spike2_status.txt`, MQ console screenshots, `references/MacroQuest Source/src/plugins/lua/MQ2Lua.cpp` and `LuaThread.h`.
+
+**Addendum to DL-011, 2026-09-29 — crash-detection decision deferred.** The developer decided to wait until spike 3 is done before choosing how the bridge detects a crashed script, since the choice depends on whether the runner's `pcall` works. Revisit trigger: spike 3's result is recorded. SPEC.md lines 84 and 101 stay as written until then.
+
+---
+
+### DL-012 — Spike 3 result: a runner can wrap a script in `xpcall` without changing its behavior, and it changes what MacroQuest reports about a crash
+
+- **Status:** Confirmed live, 2026-09-29, one run of `spikes/spike3_run.mac` on the developer's installed build, read from `Logs\spike3_log.txt` (saved as `spikes/spike3_log.txt`) plus the developer's console screenshot.
+- **Requirement:** answer spike 3: can the runner wrap a script's main loop in `pcall` without changing its behavior, for capturing tracebacks?
+- **Design choices:** none made here. It unblocks the crash-detection decision deferred in DL-011.
+- **Implementation choices:** the test runner loads the target with `loadfile` and runs it under `xpcall(chunk, debug.traceback)`. It does not use `require`, because the source (`lua_MQBindings.cpp:98`) makes `mq.delay` error inside a `require`d module ("Cannot delay while importing a module").
+- **Open:** Observed: (1) Same target, run directly (A) and through the runner (B): identical tick timing (500 ms), `mq.event` handler fired on the mid-run `/echo`, `mq.doevents()` worked, and the return value (`spike3-return`) came back to the runner. `mq.delay` works through `xpcall`. (2) A target that errors after a delay (C): the runner caught it and logged the message plus a traceback naming the target file and line. (3) The console showed no red error text for case C, and its exit line read `status 0`. So a wrapped crash looks like a clean exit to MacroQuest and to `${Lua.Script[...].Status}`; the runner is then the only source of crash information and must report it itself. (4) `/lua stop spike3_runner` mid-run (D) stopped the target: ticks ended, console `status -1`. The runner logged nothing on a stop (no "caught", no "runner end"), so a stop is recognised by that absence plus `status -1`, not by a runner message. (5) The console names the running script as `spike3_runner`, not the target, so a status query by the target's name would not find the wrapped script; queries would use the runner's name or PID. Observed only in the console, not through the TLO. (6) Flaw in the test: the `SPIKE3_MODE` marker meant to tag lines `runner` did not reach the target (all target lines read `direct`). Runner lines bracket the target lines, so the conclusions above stand, but the marker is unreliable and was not investigated. Not tested: an error before the target's first yield, an error inside an `mq.event` or `mq.bind` handler, ImGui, `os.exit` or `mq.exit` inside the target, and `mq.delay` with a condition. From the source (`LuaEvent.cpp:445`, not tested live), event handlers run in their own coroutines, so an error inside one probably would not reach the runner's `xpcall`.
+- **Supersedes:** nothing. Unblocks the decision recorded in DL-011's addendum.
+- **Source:** `Logs\spike3_log.txt`, the console screenshot, `lua_MQBindings.cpp`, `LuaEvent.cpp`.
+
+---
+
+### DL-013 — Spike 3b result: a catch-all listener hears Lua crash text, including crashes in event and bind handlers
+
+- **Status:** Confirmed live, 2026-09-29, on the developer's installed build. The developer ran `spikes/spike3b_run.mac` twice (the first run's console text was lost when the MQ window was resized; the listener truncates its log on start, so `Logs\spike3b_log.txt`, saved as `spikes/spike3b_log.txt`, holds the second run only). The second run's log and the developer's console screenshot agree, and the console text matches the log.
+- **Requirement:** gather the evidence DL-011's deferred crash-detection decision was waiting on: can the bridge's catch-all listener (spike 1) hear a Lua error, and how does each kind of crash show up?
+- **Design choices:** none made here. The decision is still the developer's (see Open).
+- **Implementation choices:** none.
+- **Open:** Observed: (1) A crash in a script's main chunk (`crash_main`): the listener received one chat line holding the error message, `stack traceback:` and the frames, with the line breaks removed (`...main chunk errorstack traceback:<tab>[C]: in function 'error'<tab>...`). The console shows it as several red lines; the event line arrives as one string with no separators, so parsing must not depend on newlines. The line names the script file and line number. It was followed by `Ending lua script '<name>' with PID N and status -1`, and `Status` went to `EXITED`. (2) A crash inside an `mq.event` handler and inside an `mq.bind` handler: the listener heard the same kind of line, ending with `in function <file:line>` naming the handler. In both cases the script kept running: its ticks continued to the end, it finished normally with `status 0`, and `Status` stayed `RUNNING` until it did. So handler crashes are visible only through the error text, not through status or the exit line. (3) The same pattern held in spike 2's crash (DL-011) and here: a crash prints the error text, then an `Ending lua script ... status -1` line with no preceding `Ending running lua script ...` line, while a manual stop prints `Ending running lua script ...` first. Three crashes and two stops are consistent with this; it is an observed pattern, not a documented one. (4) The MQ console window loses its text when resized, another reason the console cannot serve as the record (DL-009). Not tested: crashes in scripts that yield in a condition delay, several crashes in quick succession, error text from a script the runner wraps (DL-012 showed the runner hides it), whether the exact wording is stable across MacroQuest versions, and whether a script that merely prints text resembling an error would be mistaken for a crash.
+- **Decision for the developer (Protocol §1, §17, not made):** how the bridge detects a crashed script (SPEC.md lines 84 and 101). Evidence so far: the chat listener saw all three crash kinds with no change to the script under test; the runner (DL-012) catches only a crash in the wrapped main body, hides it from MacroQuest, changes the name a status query sees, and has not been shown to catch handler crashes.
+- **Supersedes:** nothing yet.
+- **Source:** `spikes/spike3b_log.txt`, console screenshot, DL-010, DL-011, DL-012.
+
+---
+
+### DL-014 — Crash detection uses the error text; the runner is out of v1
+
+- **Status:** Confirmed, 2026-09-29. Developer's decision, on Claude's recommendation. SUPERSEDES SPEC.md's error-capturing runner and its `lua_status` crash claims (spec lines edited to match, each marked or pointing here).
+- **Requirement:** the bridge must be able to tell that a script under test crashed, and report the file, line and stack. This is met by the catch-all listener hearing the error chat line (DL-010, DL-013), covering crashes in the main chunk and in `mq.event` and `mq.bind` handlers, with no wrapper around the script under test.
+- **Design choices:** no `claudebridge/runner` in v1. `lua_run` and `lua_reload` start and restart scripts directly with `/lua run` and `/lua stop`. `lua_status` reports `Status` (`RUNNING`, `PAUSED`, `EXITED`) plus any crash seen in the error text. The opt-in `testlog` module is unchanged by this decision.
+- **Implementation choices:** how the bridge recognises and parses the error line, and how it ties a line to a script by file name, are not decided. Two observed signals (DL-013 Open (3)): the error text itself, and the exit line pattern for main-chunk crashes.
+- **Open:** the reasons the runner was set aside: it catches only a crash in the wrapped main body, hides it from MacroQuest (exit `status 0`, no red text), changes the name a status query sees (DL-012), and has not been shown to catch handler crashes, while the listener needs no change to the script under test. Risks accepted by the developer: dependence on MacroQuest's error wording, and a script that prints error-like text could be mistaken for a crash; neither tested. Revisit trigger: a real need turns up (the developer's words), for example a crash the listener misses.
+- **Supersedes:** SPEC.md `claudebridge/runner` design and lines for `lua_run`, `lua_reload` and `lua_status`, and the "Error capture" paragraph, and DL-011's deferred decision.
+- **Source:** DL-011, DL-012, DL-013; developer statement, 2026-09-29.
+
+---
+
+### DL-015 — Spike 4 result: the `mcp` Python SDK installs and works on Python 3.14
+
+- **Status:** Confirmed locally, 2026-09-29. Ran on the developer's machine in a throwaway virtual environment outside the repo. Local validation only: not run under Claude Code's `.mcp.json` launch, and no MacroQuest involvement.
+- **Requirement:** answer spike 4: does the `mcp` Python SDK install cleanly on Python 3.14, which the MCP server depends on? Result: yes.
+- **Design choices:** none. The fallback (a separate Python 3.12 or 3.13 install) is not needed.
+- **Implementation choices:** none decided here. The SDK version to use (2.x as installed, or a `mcp<2` pin) is left open.
+- **Open:** Observed: (1) Python is 3.14.7, 64-bit (`python --version`, `py -0p`), so the spec's "3.14.7" is now confirmed. (2) `pip install mcp` installed `mcp` 2.2.0 with its dependencies (including `pydantic` 2.13.5, `starlette`, `uvicorn`, `pywin32`); `pip check` reported no broken requirements. (3) A minimal stdio server (one `add` tool) and a client in the same environment listed the tool and returned `add(2,3) -> 5`. (4) `mcp` 2.x is a breaking version: `from mcp.server.fastmcp import FastMCP` fails with an error saying FastMCP was renamed `MCPServer` (`from mcp.server.mcpserver import MCPServer`), and the error points to a migration guide or pinning `mcp<2`. My first test server used the old name and failed until corrected; that was a test-code error, not an install failure. The test files are `spikes/spike4_server.py` and `spikes/spike4_client.py`. Not tested: launching from `.mcp.json` in Claude Code, long-running behavior, and Windows specifics beyond the round trip. Because 2.x is a recent breaking release, the eventual MCP server should pin an exact version; that is an implementation choice for Phase 1.
+- **Supersedes:** nothing.
+- **Source:** command output from the test run, 2026-09-29; the SDK's own error message about the rename.
+
+---
+
+### DL-016 — Spike 5 result: a fake tell fires `mq.event`, so autoinv's tell path is testable with one character
+
+- **Status:** Confirmed live, 2026-09-29, one run of `spikes/spike5_run.mac` on the developer's installed build, read from `Logs\spike5_log.txt` (saved as `spikes/spike5_log.txt`) and the developer's console screenshot. autoinv was not running.
+- **Requirement:** answer spike 5: can an `/echo` of a fake tell fire `mq.event`? Result: yes. This is the deciding factor named in DL-005 for whether most of autoinv's Phase 1 tests run with one character.
+- **Design choices:** none changed. The spec's Phase 1 autoinv tests marked "(if injection works)" are now Phase 1 without the condition (spec edited; DL-005's open item is resolved by this entry).
+- **Implementation choices:** the test listener used autoinv's own patterns and callback shape (`"#1# tells you, '#2#'"`, `"#1# has left the group."`, `lua/autoinv.lua` lines 576 to 592), with a raw catch-all beside them.
+- **Open:** Observed, all lines reached both the pattern event and the raw catch-all: (1) `Spikefive tells you, 'inv'` echoed by the macro gave sender `Spikefive`, body `inv`; likewise `'INV'` (body `INV`), `' inv '` (body ` inv `, spaces preserved) and `'inv please'`. (2) The same tell sent from a script with `mq.cmd("/echo ...")` and with `print()` also fired the event with the same captures, so the bridge can inject with `mq.cmd`. (3) `Spikefive has left the group.` fired the group-leave pattern with player `Spikefive`, from both the macro and a script. Not established: that a real tell from another player arrives as the identical text (Phase 2's live invite test covers it), the `/invite` that autoinv would send to a name that is not online (harmless per the spec, but autoinv was not run), and whether an injected tell could be confused with a real one by anything in autoinv or the bridge.
+- **Supersedes:** nothing. Resolves DL-005's Open item.
+- **Source:** `spikes/spike5_log.txt`, console screenshot, `lua/autoinv.lua`.
+
+---
+
+### DL-017 — Phase 0 gate ("setup confirmed") declared passed
+
+- **Status:** Confirmed, 2026-09-29. Developer's decision.
+- **Requirement:** SPEC.md's roadmap gate G0, "setup confirmed", stands passed. What it rests on: the log and script paths confirmed on disk and readable (DL-006), the MacroQuest documentation and source reviews (DL-007, DL-008), and the five Phase 1 spikes resolved (DL-010 to DL-016). Phase 1's build (`claudebridge`, `mq-mcp`, the test runner, the guardrails) may now be planned.
+- **Design choices:** none new.
+- **Implementation choices:** none.
+- **Open:** passing the gate is not the same as validating the design. Each finding rests on one run on the developer's installed build, with edge cases listed as untested in its own entry. The bridge itself is unbuilt and untested. The autoinv log path (`config\AutoInvite\autoinvite.log`) is still unchecked on disk. Phase 1's own gate is separate ("spellspree suite passes unattended; kill switch tested").
+- **Supersedes:** nothing.
+- **Source:** developer statement, 2026-09-29; DL-006 to DL-016.

@@ -6,16 +6,16 @@ When new evidence resolves an open question, update this ledger before building 
 
 ## Up next
 
-**Phase 0 (logs access) has not started yet.** Nothing is built. Per SPEC.md's roadmap, Phase 0 needs no code — Claude reads MacroQuest and EverQuest log files directly — and can start immediately. The four Phase 1 spikes (see Open implementation details below) are the next real unknowns to resolve, before `claudebridge` or `mq-mcp` are built.
+**All five Phase 1 spikes are resolved (2026-09-29): [DL-010](decision_log.md#dl-010--spike-1-result-a-catch-all-mqevent-hears-other-scripts-print-output), [DL-011](decision_log.md#dl-011--spike-2-result-what-luascript-reports-on-this-build), [DL-012](decision_log.md#dl-012--spike-3-result-a-runner-can-wrap-a-script-in-xpcall-without-changing-its-behavior-and-it-changes-what-macroquest-reports-about-a-crash), [DL-013](decision_log.md#dl-013--spike-3b-result-a-catch-all-listener-hears-lua-crash-text-including-crashes-in-event-and-bind-handlers), [DL-015](decision_log.md#dl-015--spike-4-result-the-mcp-python-sdk-installs-and-works-on-python-314), [DL-016](decision_log.md#dl-016--spike-5-result-a-fake-tell-fires-mqevent-so-autoinvs-tell-path-is-testable-with-one-character).** The Phase 0 logs-question review is closed ([DL-009](decision_log.md#dl-009--output-capture-is-the-bridges-job-because-macroquest-writes-no-log)), and crash detection is decided ([DL-014](decision_log.md#dl-014--crash-detection-uses-the-error-text-the-runner-is-out-of-v1)). Nothing but throwaway spike scripts (in `spikes/`) is built. The developer declared the Phase 0 gate ("setup confirmed") passed on 2026-09-29 ([DL-017](decision_log.md#dl-017--phase-0-gate-setup-confirmed-declared-passed)). Next is the Phase 1 build of `claudebridge` and `mq-mcp` per SPEC.md, which needs its own plan before any code.
 
 ## Dependencies (not yet built)
 
-Everything. This is a pre-Phase-0 project. Listed here for visibility, not because any are blocked on each other in a complex way:
+Nothing beyond the throwaway spike scripts is built. Listed here for visibility, not because any are blocked on each other in a complex way:
 
 - `claudebridge` (Lua, in MacroQuest) — the only thing that touches the game.
 - `mq-mcp` (Python MCP server) — turns bridge commands into Claude-callable tools.
 - The TOML test format and runner.
-- The four Phase 1 spikes (below) need answers before the bridge's transport/error-capture design is locked in.
+- The Phase 1 spikes are done (see Up next). What they settled is recorded in Confirmed live/system facts and the decision log.
 
 ## Pending Live Verification
 
@@ -24,6 +24,10 @@ Nothing built yet, so nothing to verify. This section will track implemented-but
 ## Resolved behavior
 
 Behavior actually agreed upon (source: [SPEC.md](../SPEC.md), approved as current source of truth).
+
+- Crash detection uses the error chat text heard by the bridge's catch-all listener; there is no wrapping runner in v1 ([DL-014](decision_log.md#dl-014--crash-detection-uses-the-error-text-the-runner-is-out-of-v1), supersedes the spec's earlier runner design). Revisit only if a real need turns up.
+
+- Output capture is our Lua's job: MacroQuest writes no log of console or `print()` output, so the bridge, runner and `testlog` write what Claude needs to `events.jsonl` ([DL-009](decision_log.md#dl-009--output-capture-is-the-bridges-job-because-macroquest-writes-no-log)). EverQuest logs are read directly from disk.
 
 - Two-part architecture: `claudebridge` (Lua, in MacroQuest, the only thing that touches the game) and `mq-mcp` (Python MCP server, turns bridge commands into Claude-callable tools). Claude never touches the game directly — every action goes through the MCP server and the shared folder to the bridge.
 - Transport is files (an inbox/outbox folder, polled ~100ms), not sockets, for v1 — sockets are deferred to Phase 3 (multi-PC).
@@ -43,23 +47,36 @@ Facts established through testing, source inspection, logs, or documentation.
 - autoinv already has a full command interface (`/autoinv` covers every setting plus `refresh`, `roster`, `status`) — no testability gap there.
 - spellspree has no command interface at all; vendor selection and Start exist only as ImGui checkboxes/buttons — a real testability gap, addressed by the proposed hooks in SPEC.md's spellspree section.
 - spellspree's scribing is permanent in-game; a rerun after a tier is scribed buys nothing (the usable-only filter hides already-scribed spells).
+- Phase 0 path verification (2026-09-29, checked directly on disk; see [DL-006](decision_log.md#dl-006--phase-0-log-path-verification)):
+  - `C:\Users\Public\MacroQuest\lua`, `...\MacroQuest\Logs` and `C:\Users\Public\Project Triune\Logs` all exist. The MacroQuest folder is named `Logs` with a capital L (Windows resolves either case). The Lua folder contains `autoinv.lua` and `spellspree.lua`.
+  - The EverQuest log (`eqlog_<Character>_<server>.txt`) was being written live and opened read-only while the game was running.
+  - MacroQuest's `Logs` folder holds MQ internal and launcher logs, and no file there was found that records console or Lua `print()` output. Per-script log files (PTAR, PTDeathRecovery) are written by the scripts themselves under `Logs\`.
+  - Log files can be very large (about 60 MB EQ log, about 231 MB launcher log).
+  - Not checked in Phase 0 (Python was later checked, DL-015): the autoinv log path `config\AutoInvite\autoinvite.log`.
+- MacroQuest documentation review (2026-09-29, [DL-007](decision_log.md#dl-007--documentation-review-before-the-phase-1-spikes-console-and-print-logging)): `/mqlog <text>` writes only the text passed to it, to `MacroQuest.log` in `Logs` (or `<macro>.mac.log` inside a macro); `/mqconsole` documents no file logging; Lua `print()` is documented as redirected "to write to the mq chat", with nothing said about a log file. Caveat: pages were read through a summarizing fetch tool, not verbatim.
+- Spike 1 (live, 2026-09-29, one run, [DL-010](decision_log.md#dl-010--spike-1-result-a-catch-all-mqevent-hears-other-scripts-print-output)): a catch-all `mq.event` (`#*#`) in one script received `print()` and `printf()` output from a different script, and an `/echo` issued by `mq.cmd`. The DL-008 source reading held. No red error text appeared. The console also showed `/lua` messages with PIDs and exit statuses (0 for a script that finished, -1 for a manual stop); these are not `${Lua.Script[name].Status}` values, so spike 2 is still open.
+- Spike 2 (live, 2026-09-29, one run, [DL-011](decision_log.md#dl-011--spike-2-result-what-luascript-reports-on-this-build)): `${Lua.Script[name].Status}` gives `RUNNING`, `PAUSED` or `EXITED`. A finished script, a stopped script and a crashed script all read `EXITED`; only a finished one has return values. There is no error status. Rerunning a script erases its old entry, and `/lua run` on a running script does nothing.
+- Spike 3 (live, 2026-09-29, one run, [DL-012](decision_log.md#dl-012--spike-3-result-a-runner-can-wrap-a-script-in-xpcall-without-changing-its-behavior-and-it-changes-what-macroquest-reports-about-a-crash)): a runner using `loadfile` + `xpcall` runs a script with delays, events and return values unchanged and `/lua stop` still works. A crash it catches shows in MacroQuest as a clean exit (`status 0`, no red text), so the runner must log it. Errors inside event handlers were not tested.
+- Spike 3b (live, 2026-09-29, one run, [DL-013](decision_log.md#dl-013--spike-3b-result-a-catch-all-listener-hears-lua-crash-text-including-crashes-in-event-and-bind-handlers)): a catch-all listener hears a Lua crash as one chat line (message, `stack traceback:` and frames, line breaks removed) for a crash in the main chunk, an `mq.event` handler and an `mq.bind` handler. Handler crashes do not stop the script and do not change `Status` or the exit line; only the error text shows them.
+- Spike 4 (local, 2026-09-29, [DL-015](decision_log.md#dl-015--spike-4-result-the-mcp-python-sdk-installs-and-works-on-python-314)): Python is 3.14.7 64-bit; `pip install mcp` gave 2.2.0 with no broken requirements, and a stdio server/client round trip worked. `mcp` 2.x renamed `FastMCP` to `MCPServer`. Not tested under Claude Code's `.mcp.json` launch.
+- Spike 5 (live, 2026-09-29, one run, [DL-016](decision_log.md#dl-016--spike-5-result-a-fake-tell-fires-mqevent-so-autoinvs-tell-path-is-testable-with-one-character)): an `/echo` of a fake tell, typed-style or sent by a script with `mq.cmd` or `print()`, fires an `mq.event` using autoinv's own tell pattern with sender and body captured exactly (spaces kept), and the group-leave pattern fires the same way. autoinv's tell tests can run in Phase 1 with one character. A real tell from another player was not tested (Phase 2).
+- Installed MacroQuest origin (developer-confirmed 2026-09-29, from browser history and TAC's release notes): the [rel-emu-rof2 release](https://github.com/macroquest/macroquest/releases/tag/rel-emu-rof2). `references/MacroQuest Source` is that release's "Source code (zip)", unzipped by the developer (developer-confirmed), and its changelog matches the install's. Residual gap: not checked whether the release was re-published between install and source download.
+- MacroQuest source review (2026-09-29, [DL-008](decision_log.md#dl-008--macroquest-source-review-print-routing-event-sources-and-logging)): Lua `print()` calls `WriteChatColorf`, which runs every plugin's `OnWriteChatColor`; the Lua plugin's handler feeds the line to every running, unpaused script's event processor. Nothing on that path writes a file. Lua errors are also written through `WriteChatColorf` (red). Output is dropped for events while `gFilterMQ` is set (`/squelch`, `/filter mq`).
 
 ## Open implementation details
 
-Questions intentionally unresolved — do not decide these unilaterally; surface them for discussion when they become relevant. These are SPEC.md's "Risks and spikes," carried here so they're tracked as ledger items, not just prose in the spec.
+Questions intentionally unresolved — do not decide these unilaterally; surface them for discussion when they become relevant. Spikes 1 to 5 are resolved and moved to Confirmed live/system facts. These are SPEC.md's "Risks and spikes," carried here so they're tracked as ledger items, not just prose in the spec.
 
-- **Does a catch-all `mq.event` see `print()` output from other Lua scripts, or only EverQuest chat?** Decides how script output reaches Claude. Fallback: the runner and `testlog` write to `events.jsonl` directly.
-- **Exact values of `${Lua.Script[name].Status}` (running/exited/error) on this build.** Test steps wait on them. Fallback: poll `/lua ps` output instead.
-- **Can the runner wrap a script's main loop in `pcall` without changing its behavior?** Needed for tracebacks. Fallback: read errors from the MQ console log.
-- **Does the `mcp` Python SDK install cleanly on Python 3.14?** The MCP server depends on it. Fallback: a separate Python 3.12/3.13 install for the server.
-- **Can `/echo` of a fake tell fire `mq.event`?** Decides whether most of autoinv's tests run with one character in Phase 1, or wait for Phase 2's second character. Fallback: move tell tests to Phase 2.
 - **How many fresh test characters are needed, and how are they reset between full-flow spellspree runs?** See [DL-004](decision_log.md#dl-004--test-character-convention).
-- Every "assumed" path in SPEC.md's Environment table (Lua scripts dir, MacroQuest logs dir, EQ logs dir) — MacroQuest defaults, to be confirmed during setup rather than trusted as-is.
+- How the bridge recognises and parses the crash error line, and ties it to a script by file name ([DL-014](decision_log.md#dl-014--crash-detection-uses-the-error-text-the-runner-is-out-of-v1) leaves this to implementation). Untested: wording stability across MacroQuest versions, and a script that prints error-like text.
+- Whether the bridge's catch-all `mq.event` keeps up at high `print()` rates, and behavior with paused or squelched output. Spike 1 itself is resolved ([DL-010](decision_log.md#dl-010--spike-1-result-a-catch-all-mqevent-hears-other-scripts-print-output)); these edge cases were not tested.
+- The autoinv log path (`config\AutoInvite\autoinvite.log`) has not been checked on disk. The three log/script paths were resolved in Phase 0 ([DL-006](decision_log.md#dl-006--phase-0-log-path-verification)), and Python 3.14.7 in spike 4 ([DL-015](decision_log.md#dl-015--spike-4-result-the-mcp-python-sdk-installs-and-works-on-python-314)).
 
 ## Out of scope
 
 Explicitly decided not to build or investigate for v1 (SPEC.md "Non-goals for v1").
 
+- The error-capturing `claudebridge/runner` (DL-014). Revisit only if a real need turns up.
 - C++ plugin builds.
 - Multi-character or multi-PC tests (deferred to Phases 2/3, not out of scope forever — just not v1).
 - Visual or timing judgment ("does it look smooth").

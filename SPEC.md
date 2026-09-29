@@ -20,21 +20,27 @@ Claude runs MacroQuest Lua tests end to end with no manual steps. It reloads a s
 
 ## Environment
 
-Everything runs on one Windows PC. Paths marked "assumed" follow MacroQuest defaults and are confirmed during setup.
+Everything runs on one Windows PC. Paths marked "assumed" follow MacroQuest defaults and are confirmed during setup. Paths marked "confirmed" were checked directly on this machine during Phase 0 (2026-09-29).
 
 | Item | Value |
 | --- | --- |
 | MacroQuest build | Latest emu-rof2 release from [macroquest/macroquest](https://github.com/macroquest/macroquest/releases) |
 | MacroQuest root | `C:\Users\Public\MacroQuest` |
-| Lua scripts | `C:\Users\Public\MacroQuest\lua` (assumed, MQ `luaDir` default) |
-| MacroQuest logs | `C:\Users\Public\MacroQuest\logs` (assumed) |
+| Lua scripts | `C:\Users\Public\MacroQuest\lua` (confirmed; contains `autoinv.lua` and `spellspree.lua`) |
+| MacroQuest logs | `C:\Users\Public\MacroQuest\Logs` (confirmed; the folder is named `Logs` with a capital L; Windows ignores case, so `logs` also resolves) |
 | EverQuest client | `C:\Users\Public\Project Triune` (RoF2 emulator) |
-| EverQuest logs | `C:\Users\Public\Project Triune\Logs`, enabled with `/log on` (assumed) |
-| Python | 3.14.7, for the MCP server |
+| EverQuest logs | `C:\Users\Public\Project Triune\Logs` (confirmed; enabled with `/log on`; files are named `eqlog_<Character>_<server>.txt`, and were readable while the game was running) |
+| Python | 3.14.7, for the MCP server (confirmed 2026-09-29, 64-bit, DL-015) |
 | Plugins | 101 in the plugins folder; v1 needs MQ2Lua, and MQ2Nav with meshes for movement tests |
 | Claude access | Claude Code on this PC, with access to the MacroQuest and Project Triune folders |
 
 The bridge only uses core MacroQuest features and MQ2Nav, so the other plugins don't matter for v1.
+
+**What the log folders contain (Phase 0 findings).**
+
+- The MacroQuest `Logs` folder holds MacroQuest's own internal and launcher logs (`MacroQuest-<timestamp>.log`, `MacroQuest-Launcher-*.log`, `MQ2Nav.log`). No file there was found that records MQ console output or Lua `print()` output. A review of the MacroQuest documentation (2026-09-29, see DL-007) found no documented setting that writes console or chat output to a file. `/mqlog <text>` writes only the text it is given, to `MacroQuest.log` in the `Logs` directory, and `/mqconsole` documents no logging. The docs say only that Lua `print()` is "redirected to write to the mq chat"; they do not say whether that reaches a file. A read of the MacroQuest source (2026-09-29, see DL-008) shows `print()` output goes to MQ chat only, with no file write on that path, and that every running Lua script's `mq.event` matchers are fed that chat line. This is from source, not yet confirmed live, and the source's changelog matches the installed build's (newest entry 6/23/2026), so the versions probably match but are not proven. This bears on the first spike under Risks and spikes.
+- Scripts that log do so to their own files, and location varies by script: PTAR and PTDeathRecovery write under `Logs\`, while autoinv writes to `config\AutoInvite\autoinvite.log`. The autoinv path comes from the script's description and has not been checked on disk. `log_tail` and `log_search` therefore need a configurable list of log locations, not a single folder.
+- Log files can be very large (an EverQuest log of about 60 MB and a launcher log of about 231 MB were present), so `log_tail` and `log_search` read from the end of a file or stream it, rather than loading it whole.
 
 ## Architecture
 
@@ -43,7 +49,7 @@ flowchart LR
     Claude["Claude Code<br/>writes tests, reads reports"] <-->|tool calls| MCP["mq-mcp (Python MCP server)<br/>tools, timeouts, test runner<br/>reads EQ + MQ logs"]
     MCP <-->|request / reply files| Folder["claude folder<br/>inbox, outbox,<br/>events.jsonl, heartbeat"]
     Folder <-->|polled every ~100 ms| Bridge["claudebridge (Lua in MQ)<br/>runs commands, reads TLOs<br/>captures chat + errors<br/>enforces guardrails"]
-    Bridge -->|lua_run / lua_stop| Script["Script under test<br/>started through the runner"]
+    Bridge -->|lua_run / lua_stop| Script["Script under test<br/>started with /lua run"]
     Bridge <-->|mq.cmd, mq.parse| Game["EverQuest + MacroQuest<br/>test character"]
     Game -->|writes| Logs["Log files<br/>EQ Logs, MQ logs"]
     Logs --> MCP
@@ -73,13 +79,13 @@ The bridge is a Lua script, `claudebridge`, started once per session with `/lua 
 | `eval` | Evaluates a TLO expression with `mq.parse` and returns the string | Read-only; e.g. `${Me.PctHPs}`, `${Target.CleanName}` |
 | `eval_many` | Evaluates a list of expressions in one round trip | Snapshots for assertions |
 | `wait_for` | Polls an expression inside the game until it matches or times out | Avoids a Claude round trip per poll; e.g. wait until `${Navigation.Active}` is FALSE |
-| `lua_run` | Starts a script, optionally through the error-capturing runner | Returns the PID |
+| `lua_run` | Starts a script with `/lua run` | Returns the PID. Does nothing if the script is already running, so a reload stops it first (DL-011) |
 | `lua_stop` | Stops a script by name or PID | |
-| `lua_status` | Reads `${Lua.Script[name].Status}` and related members | Detects crashed or finished scripts |
+| `lua_status` | Reads `${Lua.Script[name].Status}` (`RUNNING`, `PAUSED`, `EXITED`) and related members | `Status` cannot tell a crash from a stop; crashes come from the error text (DL-011, DL-014) |
 | `chat_since` | Returns captured chat lines after a cursor | From a catch-all `mq.event` |
 | `halt` | Kill switch: stops the script under test, movement, and combat, then refuses new commands | Same as the in-game `/claudestop` |
 
-**Error capture.** Scripts under test can be started through a small runner, `claudebridge/runner`, which loads the target inside `pcall` with a traceback handler. A crash is then written to `events.jsonl` with file, line, and stack, instead of only showing in the MQ console. Scripts can also opt in to a tiny `testlog` module that writes structured lines (`decision`, `state`, `error`) to the same file.
+**Error capture.** A Lua error is printed to MQ chat as one line holding the message, `stack traceback:` and the frames, with the line breaks removed. The bridge's catch-all event hears it and writes it to `events.jsonl` with file, line and stack. This covers a crash in the main chunk and in `mq.event` and `mq.bind` handlers, with no wrapper around the script under test (DL-013, DL-014). A crash in a handler does not stop the script or change its `Status`, so the error text is the only signal for it. A crash in the main chunk is followed by `Ending lua script ... status -1` with no `Ending running lua script ...` line before it; a manual stop prints that line. That pattern is observed, not documented. Scripts can also opt in to a tiny `testlog` module that writes structured lines (`decision`, `state`, `error`) to the same file. *(Supersedes the earlier design of an error-capturing `claudebridge/runner`; see DL-014.)*
 
 ## MCP server (Python)
 
@@ -91,8 +97,8 @@ The MCP server, `mq-mcp`, is a small Python program on the PC that turns bridge 
 | `mq_command` | Send one slash command; returns whether it was allowed and any chat it produced |
 | `mq_eval` | Read one or many TLO expressions |
 | `mq_wait_for` | Wait for a condition in game, with a timeout |
-| `lua_reload` | Stop and restart a script, optionally through the runner |
-| `lua_status` | Running, finished or crashed, plus the last error and traceback |
+| `lua_reload` | Stop and restart a script |
+| `lua_status` | Running, paused or exited, plus any crash seen in the error text, with its file, line and stack (DL-014) |
 | `mq_events` | Chat, errors and script output since a cursor, filterable by type or pattern |
 | `log_tail` / `log_search` | Read or grep the EverQuest and MacroQuest log files without copying them |
 | `run_test` | Run a test file end to end and return a pass or fail report (see next section) |
@@ -225,7 +231,7 @@ Commands a script under test sends itself, like autoinv's reply tells, don't pas
 
 ## First test targets
 
-spellspree can be tested fully with one character, so it goes first. autoinv already has a command interface; most of its tests run with one character if fake tells can be injected, and the rest wait for a second character in Phase 2.
+spellspree can be tested fully with one character, so it goes first. autoinv already has a command interface; most of its tests run with one character because fake tells can be injected (spike 5, DL-016), and the rest wait for a second character in Phase 2.
 
 ### spellspree
 
@@ -284,28 +290,28 @@ The roster comes from `/outputfile guild`, parsed from the file EverQuest writes
 - **Already logs structured lines.** `INVITE`, `DENY`, `DZADD`, `DZREMOVE`, roster parse and `STATUS` lines go to `config\AutoInvite\autoinvite.log`, which is reset on each load. These are ready-made assertion targets.
 - **Replies by itself.** When whisper-deny is on, the script sends `/tell`s to denied senders, and it sends `/g` announcements. These don't go through the bridge, so tests should use fake sender names or turn whisper-deny off.
 - **Tell to self doesn't help.** It only prints "Talking to yourself again?", not a "tells you" line.
-- **Spike: can a fake tell be injected?** If an `/echo` of "Bob tells you, 'inv'" fires `mq.event` on this build, the whole tell path can be tested with one character. The resulting `/invite` to a name that isn't online is harmless. If not, tell tests move to Phase 2.
+- **Spike: can a fake tell be injected?** **Resolved live 2026-09-29 (DL-016): yes.** An `/echo` of "Spikefive tells you, 'inv'", typed-style or sent from a script with `mq.cmd`, fired an `mq.event` using autoinv's own pattern with the sender and body captured correctly, so the whole tell path can be tested with one character. The resulting `/invite` to a name that isn't online is expected to be harmless; that has not been tested with autoinv running. Not shown: that a real tell from another player produces the identical text, which Phase 2 covers.
 
 | Test | Phase | Pass when |
 | --- | --- | --- |
 | Roster refresh | 1 | After `/autoinv refresh`, the log shows a parse with more than 0 members and known guildmates are listed by `/autoinv roster` |
-| Gate: guild member | 1 (if injection works) | Injected `inv` from a guildmate's name gives `INVITE <name> (guild)` |
-| Gate: extras | 1 (if injection works) | After `/autoinv add Outsider`, an injected `inv` gives `INVITE Outsider (extras)` |
-| Gate: denied | 1 (if injection works) | An unknown name gives `DENY invite` and no `/invite` in the audit log |
-| Guild-only off | 1 (if injection works) | Any name gives `INVITE` |
-| Trigger matching | 1 (if injection works) | `INV`, ` inv ` are accepted; `inv please` and `invite` are ignored |
+| Gate: guild member | 1 | Injected `inv` from a guildmate's name gives `INVITE <name> (guild)` |
+| Gate: extras | 1 | After `/autoinv add Outsider`, an injected `inv` gives `INVITE Outsider (extras)` |
+| Gate: denied | 1 | An unknown name gives `DENY invite` and no `/invite` in the audit log |
+| Guild-only off | 1 | Any name gives `INVITE` |
+| Trigger matching | 1 | `INV`, ` inv ` are accepted; `inv please` and `invite` are ignored |
 | Group full | 2 | With 5 others grouped, `DENY invite (group full)` |
 | Live invite | 2 | A second character's real tell produces a pending invite and `${Group.Member[<name>]}` after accepting |
 | Live DZ add and remove | 2 | With an expedition open, the sender is added; after leaving the group, they are removed |
 
-**Testability check result:** none are required. A `/autoinv selftest` subcommand that runs the gate against sample names would make the Phase 1 tests independent of the injection spike.
+**Testability check result:** none are required. A `/autoinv selftest` subcommand that runs the gate against sample names would make the Phase 1 tests independent of fake-tell injection.
 
 ## Roadmap
 
 ```mermaid
 flowchart TD
-    P0["Phase 0 · Logs access (now)<br/>Claude reads MQ and EQ logs directly. No code."] --> G0{{"Gate: setup confirmed"}}
-    G0 --> P1["Phase 1 · One character<br/>Spikes, claudebridge, mq-mcp, runner, guardrails.<br/>spellspree suite and autoinv tests."]
+    P0["Phase 0 · Logs access (done)<br/>Claude reads EQ logs directly; MQ writes no console log (DL-009). No code."] --> G0{{"Gate: setup confirmed (passed 2026-09-29, DL-017)"}}
+    G0 --> P1["Phase 1 · One character<br/>Spikes, claudebridge, mq-mcp, guardrails.<br/>spellspree suite and autoinv tests."]
     P1 --> G1{{"Gate: spellspree suite passes unattended; kill switch tested"}}
     G1 --> P2["Phase 2 · Boxes on one PC<br/>One bridge folder per character.<br/>autoinv live invite and DZ tests."]
     P2 --> G2{{"Gate: autoinv live tests pass with two characters"}}
@@ -314,19 +320,19 @@ flowchart TD
     G3 --> P4["Phase 4 · Public release<br/>Config-driven paths, install guide, packaged plugin."]
 ```
 
-Phase 0 needs nothing built and can start today. The file transport from Phase 1 carries through Phase 2 unchanged; only Phase 3 needs a network transport.
+Phase 0 needed nothing built and is done (DL-017). The file transport from Phase 1 carries through Phase 2 unchanged; only Phase 3 needs a network transport.
 
 ## Risks and spikes
 
-Four short spikes at the start of Phase 1 settle the main unknowns before anything else is built.
+A documentation and source review came first and is closed (DL-007, DL-008): MacroQuest writes no log of console or `print()` output, so the bridge's Lua must capture whatever Claude needs to read (DL-009). Five short spikes at the start of Phase 1 settle the remaining unknowns before anything else is built.
 
 | Spike | Why it matters | Fallback |
 | --- | --- | --- |
-| Does a catch-all `mq.event` see `print()` output from other Lua scripts, or only EverQuest chat? | Decides how script output reaches Claude | The runner and `testlog` write to `events.jsonl` directly |
-| Exact values of `${Lua.Script[name].Status}` (running, exited, error) on this build | Test steps wait on them | Poll `/lua ps` output instead |
-| Can the runner wrap a script's main loop in `pcall` without changing its behavior? | Needed for tracebacks | Read errors from the MQ console log |
-| Does the `mcp` Python SDK install cleanly on Python 3.14? | The MCP server depends on it | Use a separate Python 3.12 or 3.13 install for the server |
-| Can `/echo` of a fake tell fire `mq.event`? | Single-character autoinv tests | Move tell tests to Phase 2 |
+| Does a catch-all `mq.event` see `print()` output from other Lua scripts, or only EverQuest chat? **Resolved live 2026-09-29 (DL-010): it sees it.** | Decides how script output reaches Claude | `testlog` writes to `events.jsonl` directly (not needed for this purpose) |
+| Exact values of `${Lua.Script[name].Status}` on this build. **Resolved live 2026-09-29 (DL-011): `RUNNING`, `PAUSED`, `EXITED`; no error value, and a crash reads as `EXITED`, the same as a stop.** | Test steps wait on them | Poll `/lua ps` output instead (not needed for status; crash detection is open, see DL-011) |
+| Can the runner wrap a script's main loop in `pcall` without changing its behavior? **Resolved live 2026-09-29 (DL-012): yes, via `loadfile` + `xpcall` (not `require`). Delays, events, return values and `/lua stop` behave the same, but a caught crash then looks like a clean exit to MacroQuest, so the runner must report it.** | Needed for tracebacks | Read errors from the MQ console log (that text is chat, not a file; the bridge can hear it, see DL-010). **Decided 2026-09-29 (DL-014): the runner is left out of v1; crashes are detected from the error text (DL-013).** |
+| Does the `mcp` Python SDK install cleanly on Python 3.14? **Resolved 2026-09-29 (DL-015): yes. `mcp` 2.2.0 installed and a stdio server/client round trip worked. In 2.x `FastMCP` is renamed `MCPServer`.** | The MCP server depends on it | Use a separate Python 3.12 or 3.13 install for the server (not needed) |
+| Can `/echo` of a fake tell fire `mq.event`? **Resolved live 2026-09-29 (DL-016): yes.** | Single-character autoinv tests | Move tell tests to Phase 2 (not needed) |
 
 **Other risks**
 
