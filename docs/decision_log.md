@@ -469,3 +469,13 @@ Entries below that supersede a specification item are indexed here so the supers
    - **Checked:** locally, with a fake file over the limit: the bridge returns the error reply, the decoder is never called and the next request is still handled in order; a file at the limit is accepted.
    - **Not in this criterion:** the limit's value (a first guess under Protocol §15, to be proposed with its evidence) and whether to add a fourth error kind or reuse `invalid_request`. A decode-time guard is a different mechanism and is not added unless the size-limit evidence shows that files within the limit can still cause unacceptable stalls (the developer's note).
    - **For a second reviewer:** whether checking the file size before decoding is enough.
+
+**Evidence note for DL-021 design item 14, 2026-09-29 — nesting-depth test, prompted by a second reviewer.** The reviewer held approval of the 32 KiB request size limit until it was shown whether deeply nested JSON under the limit could hang, stall or crash the decoder, since the size check runs before any shape validation. Tested in standalone LuaJIT on one machine (test file in the scratch folder; not added to the repo). Observed with `rxi/json.lua` 0.1.2:
+
+- **Nested arrays:** depths 100 to 8000 (up to 16,000 bytes) decode in about a millisecond or less; depth 16,000 (32,000 bytes), 16,384 (32,768 bytes) and 20,000 fail with `stack overflow`, in about a millisecond, using about 1 MB of memory. It is an ordinary Lua error, caught by `pcall`.
+- **Nested objects:** depths up to 6,000 (36,001 bytes) decode in about a millisecond.
+- **Unterminated arrays:** depth 3,000 gives a clean "unexpected character" error; depth 16,000 and 32,000 give `stack overflow`, again in about a millisecond.
+- **Combinations:** 2,000 levels of nesting around a 10 KB escape-heavy string decode in 3 ms; a wide array of 8,000 numbers (16 KB) in 1 ms; a wide array of 3,000 escaped strings (21 KB) in under 1 ms.
+- **After the failures**, the process was still alive and decoded normally.
+- **Conclusion:** in the shapes tried, a file under 32 KiB either decodes or fails with a catchable error within milliseconds, with no hang and no crash. The worst CPU cost remains the escape-heavy string case measured earlier (about 0.03 to 0.05 s at 32 KiB). This supports the earlier claim that request size is a sufficient boundary, for these shapes.
+- **Not verified:** other shapes (the test was not exhaustive); behavior inside MacroQuest's embedded LuaJIT and inside a coroutine driven by its Lua binding layer (a stack overflow there should also be caught by `pcall`, but this was not run in game).
