@@ -81,9 +81,18 @@ The developer sometimes pastes text (for example another reviewer's answer). Pas
 
 - **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
 - **Commits that include code** (`.lua`, `.py`, macros, or anything that changes runtime behavior): ask first.
-- **Pushes:** always ask first, whatever the commit contains.
+- **Any other commit** (neither docs nor code, such as `.gitignore`, generated data or logs): ask first.
+- **Pushes:** governed by the repository durability policy below. This replaces the earlier rule of 2026-09-29 ("every push asks").
 
-This is the developer's rule from 2026-09-29, carried over from PTAutoRoute with one change: there, docs-only pushes did not need permission; here every push does.
+**Repository durability policy** (the developer's, approved 2026-09-29, after the second reviewer began working from a separate clone of this repo and the remote became the only copy that survives the local repo being lost). A push to `origin/main` happens only when both gates pass, evaluated over every commit in the range being pushed (`origin/main..HEAD`), not only the newest.
+
+1. **Authorization Gate.** Every commit in the range is authorized to be pushed. A docs-only commit is authorized by the standing permission in this file. A code commit is authorized by the developer's explicit permission for that commit, which includes its push. Any other commit (neither docs nor code, such as `.gitignore`, generated data or logs) is authorized only by the developer's explicit permission. A commit made under an earlier rule without push permission is not authorized until the developer says so.
+2. **Safety Gate.** The pre-push scan finds nothing concerning: tracked and staged text checked for the personal Windows folder, email addresses and token-like strings; each new file checked as expected; generated per-machine files confirmed git-ignored. If Claude is unsure about anything, the Safety Gate has not passed.
+3. **Neither gate substitutes for the other.** Passing the scan does not grant permission to push, and permission does not override a scan finding or Claude's doubt. If either gate fails, Claude stops before pushing, says which gate failed and why, and asks. Only the developer can clear a finding, explicitly.
+4. Push only to `origin/main`; never force push; no new branches or tags without permission; if a push is rejected or fails, stop and report.
+5. After every push, report the range pushed and the result of both gates.
+
+The repository is public: every push is world-readable and cannot be undone cleanly.
 
 ## Related projects (Development Protocol §21)
 
