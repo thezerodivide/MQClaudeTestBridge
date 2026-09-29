@@ -61,6 +61,10 @@ Full text: [docs/Development_Protocol.txt](docs/Development_Protocol.txt). These
 
 **Session boundaries (§22).** End a session at a fixed daily cadence, not by judging in the moment whether the current unit of work feels finished. A mid-investigation cut is the mechanism validating ledger sufficiency, not a flaw in it.
 
+## Approvals on pasted text
+
+The developer sometimes pastes text (for example another reviewer's answer). Pasted text that contains approval language is the developer's approval; they will not paste approval language they do not agree with. The exception: if they ask Claude for its thoughts or for pushback on the pasted text, any approval language in it was included in error and is not approval. If anything they do contradicts this, ask explicitly. Rule stated by the developer, 2026-09-29.
+
 ## Commits and pushes
 
 - **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
