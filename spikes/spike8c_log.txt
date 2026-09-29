@@ -1,0 +1,13 @@
+spike8 (c) start
+16:18:42 | ffi.arch = x86, ffi.os = Windows
+16:18:42 | symbols bound: MoveFileExA and GetLastError
+16:18:42 | (c1) replace, destination does not exist: about to call MoveFileExA
+16:18:42 | (c1) replace, destination does not exist: returned 1 (success)
+16:18:42 |      destination now holds: new | temp exists: false
+16:18:42 | (c2) replace, destination exists and is not held open: about to call MoveFileExA
+16:18:42 | (c2) replace, destination exists and is not held open: returned 1 (success)
+16:18:42 |      destination now holds: newer | temp exists: false
+16:18:42 | (c3) replace, destination held open by this script: about to call MoveFileExA
+16:18:42 | (c3) replace, destination held open by this script: returned 0 (failure, GetLastError 5, ffi.errno 2)
+16:18:42 |      destination now holds: newer | temp exists: true
+16:18:42 | spike8 (c) end

@@ -1,0 +1,29 @@
+{
+  "expected_N": 6000,
+  "reads": 185008,
+  "duration_s": 19.63,
+  "reads_per_s": 9424,
+  "counts": {
+    "ok": 182383,
+    "missing": 0,
+    "open_or_read_failure": 2625,
+    "invalid_utf8": 0,
+    "invalid_json": 0,
+    "inconsistent": 0
+  },
+  "open_or_read_failure_kinds": {
+    "PermissionError errno=13 winerror=None": 2625
+  },
+  "generations_seen": 2059,
+  "highest_generation_seen": 6000,
+  "generation_regressions": 0,
+  "saw_final_generation": true,
+  "samples_of_non_ok_reads": {
+    "ok": [],
+    "missing": [],
+    "open_or_read_failure": [],
+    "invalid_utf8": [],
+    "invalid_json": [],
+    "inconsistent": []
+  }
+}

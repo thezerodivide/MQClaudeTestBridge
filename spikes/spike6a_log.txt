@@ -1,0 +1,14 @@
+spike6a start
+14:15:33 | baseline parse("hello") -> [hello]
+14:15:33 | Zone.Name = [The Plane of Knowledge] length 22
+14:15:33 | CASE out T=1000 about to parse, input length 550, expected output length 1000
+14:15:33 | CASE out T=1000 normal: returned length 1000, identical to expected
+14:15:33 | CASE out T=2000 about to parse, input length 1100, expected output length 2000
+14:15:33 | CASE out T=2000 normal: returned length 2000, identical to expected
+14:15:33 | CASE out T=2046 about to parse, input length 1116, expected output length 2046
+14:15:33 | CASE out T=2046 normal: returned length 2046, identical to expected
+14:15:33 | CASE out T=2047 about to parse, input length 1117, expected output length 2047
+14:15:33 | CASE out T=2047 normal: returned length 2047, identical to expected
+14:15:33 | CASE out T=2048 about to parse, input length 1118, expected output length 2048
+14:15:33 | CASE out T=2048 ABNORMAL: returned length 2047, first difference at byte 2048, tail=[ Plane of Knowledgex]
+14:15:33 | spike6a end

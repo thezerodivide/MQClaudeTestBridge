@@ -1,0 +1,8 @@
+spike6b start
+14:18:29 | CASE in N=2000 about to parse, input length 2000
+14:18:29 | CASE in N=2000 normal: returned length 2000, identical to input
+14:18:29 | CASE in N=2046 about to parse, input length 2046
+14:18:29 | CASE in N=2046 normal: returned length 2046, identical to input
+14:18:29 | CASE in N=2047 about to parse, input length 2047
+14:18:29 | CASE in N=2047 normal: returned length 2047, identical to input
+14:18:29 | CASE in N=2048 about to parse, input length 2048

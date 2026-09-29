@@ -1,0 +1,11 @@
+spike8 (a)(b) start
+16:00:28 | (b1) os.rename onto a NEW name: ok
+16:00:28 |      new name now holds: new
+16:00:28 | (b2) os.rename onto an EXISTING file: FAILED: C:/Users/Public/MacroQuest/Logs/spike8_c.tmp: File exists (code 17)
+16:00:28 |      destination now holds: old | temp file still exists: true
+16:00:28 | (b3) os.remove of a file held open by this script: FAILED: C:/Users/Public/MacroQuest/Logs/spike8_d.dat: Permission denied (code 13)
+16:00:28 | (b3) os.remove after closing it: ok
+16:00:28 | (a) pcall(require, "ffi"): ok
+16:00:28 |     ffi.os = Windows, ffi.arch = x86
+16:00:28 |     jit global present: true, jit.version = LuaJIT 2.1.1774638290
+16:00:28 | spike8 (a)(b) end
