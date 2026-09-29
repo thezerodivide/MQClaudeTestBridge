@@ -26,3 +26,11 @@ How this log works:
 - **Evidence:** the `\x07` byte found in `docs/project_ledger.md`, and the scan that followed.
 - **Suggested:** CLAUDE.md (after any scripted edit of a doc or script that contains Windows paths, re-read the edited lines; use raw strings or the Edit tool for backslash content).
 - **Triage:**
+
+### LL-003 — A new permission rule was broken within the hour by a bundled commit (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** Claude wrote the rule "code commits need permission" into `CLAUDE.md`, then committed a docs change together with a new Lua file (`spikes/renametest.lua`) in a single `git add` of two paths, without asking. It noticed after committing, disclosed it, and offered to undo it. The developer chose to keep the commit. The cause was treating the file as part of a docs note, not checking the file type of each path before staging.
+- **Evidence:** commit `8f8701c`; the developer's answer keeping it (2026-09-29).
+- **Suggested:** CLAUDE.md (before every commit, list the files staged and check each against the docs-only rule).
+- **Triage:**
