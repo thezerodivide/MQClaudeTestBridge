@@ -669,3 +669,23 @@ Entries below that supersede a specification item are indexed here so the supers
 4. **Deferred:** the wide-character `MoveFileExW` with a UTF-8 to UTF-16 conversion (more untested crash-capable ffi code that slice 1 does not need). **Revisit trigger:** the first real install with a non-ASCII path, or before a public release (Phase 4).
 5. **Worst case:** a user with a non-ASCII install path cannot run the bridge until the wide-character version exists; that is visible and safe. The default folder (`C:\Users\Public\MacroQuest\claude\`) is ASCII, so it does not affect the developer's setup. Alternative not chosen: implementing `MoveFileExW` now.
 6. Second reviewer's approval recorded from the "For Claude" section, and the developer's from the "For Shane" section.
+
+---
+
+### DL-022 — Phase 1, slice 1: build order
+
+- **Status:** Approved, 2026-09-29, by the developer and the second reviewer (from its "For Claude" section), with one evidence-boundary clarification (step 6 below). Nothing of the slice is built yet beyond throwaway spikes.
+- **Requirement:** build slice 1 to meet DL-018's 13 criteria and DL-021's design, one substantive change at a time (Protocol §6): tests written from the requirement first and shown failing for the right reason, then the implementation, a diagnostic pass, a review against the spec, local tests, an outside-developer read of the evidence, and only then a live handoff (§7, §8, §10). Every test names the requirement it comes from (DL-012's rules apply: no expected value taken from running the code, no test-only branches in shipping code). Safety-sensitive code goes to the second reviewer in full, with its byte size and SHA-256, before any installation (CLAUDE.md).
+- **Design choices:** the order, each step one reviewed change with local tests:
+  1. Scaffolding and identity: the adapted test harness (design item 1), `version.lua` and `version.py` with the identity checks and the equal-versions test, and the pure ASCII path check.
+  2. `queue.lua`: sequence order, gaps, duplicates, the canonical file-name rule (criteria 2 and 10).
+  3. `core.lua`, plus vendoring `json.lua`: request text to reply, the byte rule, fixed error messages, the expression and request size limits, empty lists (criteria 1, 4, 5, 10, 12, 13).
+  4. `store.lua`: the heartbeat, events and reply files (criteria 6 and 7; items 9, 10, 19, 26). The `MoveFileExA` replace can only be proven live.
+  5. `loop.lua` and the entry script `claudebridge.lua`: orchestration order and the wiring to MacroQuest.
+  6. The MCP side: build and locally test `config.py`, `client.py` (sequence allocation, limits, timeouts), `status.py`, the log, and the parts that do not need the `mcp` package (criteria 3, 8, 9, 12, 13; items 22, 23, 25). `server.py` may be added as the thin wiring layer but is **not claimed locally verified**: the pinned `mcp` package does not exist in the repo's `.venv` until step 7 (design item 4 made `server.py` the exception to ordinary local testing).
+  7. `tools/make_test_build.py` and the locked `.venv`: build and verify the versioned test-build machinery, and create the locked `.venv` with the developer's permission (a download). Once that environment exists, run the available `server.py` and MCP wiring checks before anything is handed off live.
+  8. The first test build handoff and the live check: criterion 11 is the authoritative assembled Claude Code to MCP to bridge to MacroQuest check, plus the live-only Opens.
+- **Implementation choices:** dependency reasoning recorded with the order: queue before core and store orchestration, pure core before filesystem behavior, store before loop wiring, bridge before the MCP client, build packaging after the implementation it packages.
+- **Open:** what needs the developer's permission along the way: the `json.lua` download (step 3, already approved for scratch use only, not for the repo), the `.venv` download (step 7), and committing code (each step's files). Live behavior stays unproven until step 8.
+- **Supersedes:** nothing.
+- **Source:** developer and second reviewer approval, 2026-09-29; DL-018, DL-021.
