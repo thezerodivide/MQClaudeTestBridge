@@ -342,3 +342,16 @@ Entries below that supersede a specification item are indexed here so the supers
    - Reasoning recorded with it: the bridge measures the exact Lua string about to be passed to `mq.parse` (byte length, not JSON text length), so there is no conversion mismatch; the limit is the evidenced value, and the developer accepted no margin (a risk decision the developer made). A note for the `cmd` slice: `mq.cmd` probably has a similar fixed-size limit, untested.
 
 **Addendum to DL-018, 2026-09-29 — acceptance criteria complete.** The developer considers the twelve acceptance criteria for slice 1 complete. Approved criteria: 1 (`ping` over the file transport), 2 (complete requests in order), 3 (the MCP server never reuses a sequence number), 4 (`eval` preserves the parser result), 5 (`eval_many`), 6 (`heartbeat.json`), 7 (`events.jsonl`), 8 (`mq_eval`), 9 (`mq_status`), 10 (allowed request types; an invalid request cannot block the queue), 11 (the assembled path works end to end), 12 (the 2047-byte expression limit). Not criteria, and still to be settled: startup and restart state for sequence numbers on both sides, the contents of `config.toml`, and the JSON library to vendor (downloading it needs the developer's permission). Per the user story template's rule, no design was proposed before this point; the next step is to propose the smallest design that meets the criteria, with a recommendation and what is deliberately deferred.
+
+---
+
+### DL-021 — Phase 1, slice 1: design
+
+- **Status:** In progress, 2026-09-29. Design items are added here as the developer approves each one. Follows the acceptance criteria in DL-018, which are complete. Nothing is built.
+- **Requirement:** the design proposed here must meet DL-018's twelve criteria and add nothing beyond them (Protocol §3). Deliberately deferred items are named with each design item.
+- **Design choices:** approved by the developer so far:
+  1. **Local test tooling for the Lua side reuses PTAutoRoute's harness** (prior art, Protocol §21): `test/check.cmd` (syntax check, then all tests, success only if both pass), `test/harness/run.lua` (each `*_test.lua` in its own LuaJIT process; refuses to run if a `.lua` in `test/` is not named `*_test.lua`; fails if zero tests ran), `test/harness/syntax_check.lua`, a fake of the game-facing adapter modelled on `sim.lua`, and vendored `test/vendor/lester.lua`. PTAutoRoute-specific labels (for example "PTAR test run", `PTAR_TEST_SUMMARY`) are renamed for this project. Tests live in `test/`, never under `lua/`. MQ-free modules get real tests; the MacroQuest-facing entry script is parse-checked only. PTAutoRoute's test rules apply here too: every test names the requirement it comes from; no test-only branches in shipping code.
+- **Implementation choices:** none decided.
+- **Open:** Python-side test tooling for `mq-mcp` is a separate, undecided item; the module layout of the Lua code is the next design item. Copying harness code is code: committing it needs the developer's permission.
+- **Supersedes:** nothing.
+- **Source:** `PTAutoRoute/test/` (harness, `check.cmd`, `run.lua`, `fs.lua`); developer approval, 2026-09-29.
