@@ -1,0 +1,17 @@
+# Machine-specific configuration (paths, character name) - not portable across machines
+config.toml
+
+# Runtime bridge folder (inbox/outbox/events.jsonl/heartbeat/audit.log) - generated at runtime
+claude/
+
+# Test reports (generated per run)
+claude/reports/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Windows folder metadata
+desktop.ini
