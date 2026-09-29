@@ -397,3 +397,13 @@ Entries below that supersede a specification item are indexed here so the supers
 
 - **Known limitation, accepted by the developer:** if the very first request after startup is itself lost, the bridge cannot tell, because it has no earlier number to compare against; only later gaps are detected. Slice 1 is read-only, so the harm is a wasted call. If the bridge restarts mid-session, in-flight requests are treated as stale and time out, which already invalidates a run (criterion 8).
 - **Not done, on purpose:** moving old files aside or cleaning folders (no criterion needs it; Protocol §3).
+
+**Addendum to DL-021, 2026-09-29 — design item 7 approved: the bridge folder and `config.toml`.**
+
+- The bridge (Lua) cannot read TOML without a parser, and the JSON-only transport is meant to avoid extra packages, so the bridge works out its own folder as `<MacroQuest root>\claude\`, from `${MacroQuest.Path[root]}`. This is the one place a hard-coded convention lives on the Lua side. The spec's location is `C:\Users\Public\MacroQuest\claude\`.
+- The Python side reads `config.toml` (git-ignored, machine-specific, as `.gitignore` already says). A `config.example.toml` is shipped with the keys, and the developer copies it.
+- Keys for slice 1: `bridge_dir` (defaults to the same folder the bridge uses), `heartbeat_max_age_s`, `reply_timeout_s`, `game_process_name` (`eqgame.exe`, as observed this session).
+- The two timing values are first guesses under Protocol §15. No numbers are chosen in this item; they are chosen in their own step, with evidence from the live check (for example how long the heartbeat lags during zoning).
+- The poll interval is not a config key: it belongs to the bridge and the spec fixes it at about 100 ms.
+- Risk noted: if `bridge_dir` does not match where the bridge actually writes, `mq_status` reports no heartbeat, which looks like a dead bridge but is a configuration mistake. The "no heartbeat found" message names the folder it looked in, so the mismatch is visible.
+- Deferred: the two timing values, and `.mcp.json`.
