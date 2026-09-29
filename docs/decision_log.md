@@ -572,3 +572,14 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Handoff line:** the script prints the exact run command and the versions `mq_status` should report.
 - **Verified:** Python puts the entry script's directory on `sys.path` first (standard behavior). **Unverified:** how Claude Code launches the entry (working directory and environment). **Worst case:** the script refuses a legitimate rebuild, which bumping `-test.N` fixes.
 - Second reviewer's approval recorded from the "For Claude" section.
+
+**Addendum to DL-021, 2026-09-29 — design item 25 approved: how `mq_status` detects the game process.** Resolves criterion 9's Open (2).
+
+- **Method:** run `tasklist /FI "IMAGENAME eq <game_process_name>" /FO CSV /NH` from Python with a timeout; the game counts as running when any output row's first CSV field equals the configured process name, compared case-insensitively. Parsing the CSV row (not the "INFO: No tasks are running..." sentence, which Windows localizes) keeps it independent of language. Verified on the developer's machine: a running game prints `"eqgame.exe","<pid>","Console","<session>","<memory> K"`; an absent process prints the INFO sentence.
+- **Three outcomes:** `game_running` is `true`, `false` (the check succeeded and found no matching process) or `null` (the check itself failed or timed out, so neither `true` nor `false` may be claimed). A new always-present field `game_problem` is `null` normally, otherwise fixed ASCII text such as "tasklist timed out" or "tasklist failed to start".
+- **Multiple game instances:** any running instance counts as running; multiple instances remain out of scope for v1 (criterion 9's Open 4). The bridge's heartbeat identifies which character is connected.
+- **Testing:** the process check is an injected function, so local tests fake it, including timeout and failure cases.
+- **Amends the `mq_status` result:** always present: `game_running` (`true`, `false` or `null`), `game_problem`, `bridge_alive`, `heartbeat_age_s`, `heartbeat_problem`, `server_version`, `log_status`, `log_problem`; only when the bridge is alive: `character` or `character_base64`, `zone` or `zone_base64`, `state`, `bridge_version`.
+- **Alternative not chosen:** calling the Windows process API through `ctypes` (no program start, but more code and no failure output to test against, for a check that runs once per `mq_status` call).
+- **Assumption:** `tasklist` ships with every Windows machine we run on. **Worst case:** a false `null` when `tasklist` is slow; the status stays honest and nothing fails. The timeout value is a first guess under Protocol §15, not chosen here.
+- Second reviewer's approval recorded from the "For Claude" section.
