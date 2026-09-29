@@ -42,3 +42,11 @@ How this log works:
 - **Evidence:** `Logs\spike6a_log.txt` ("cannot build: zone name too short"); the developer's reply.
 - **Suggested:** CLAUDE.md (every live-test step message states the preconditions it needs, even if an earlier message did).
 - **Triage:**
+
+### LL-005 — A proposed risk acceptance quietly weakened an approved criterion (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** In design item 12 (the MCP sequence counter), Claude proposed "counter written after the rename" and called the remaining reuse gap (a crash plus a cleanup before restart) "acceptable", framed as the developer's risk tolerance. That gap contradicts approved criterion 3, whose wording and local test cover cleanup plus restart. Accepting it would have weakened an approved requirement silently. A pasted review caught it; Claude agreed, withdrew the design and proposed counter-first with burned numbers as loud failures.
+- **Evidence:** DL-021 design item 12 discussion; criterion 3's approved wording in DL-018.
+- **Suggested:** CLAUDE.md (before asking the developer to accept a residual risk, check it against every approved criterion; if it contradicts one, raise it as a conflict with that criterion, not as a risk to accept).
+- **Triage:**
