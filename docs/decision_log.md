@@ -355,3 +355,15 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Open:** Python-side test tooling for `mq-mcp` is a separate, undecided item; the module layout of the Lua code is the next design item. Copying harness code is code: committing it needs the developer's permission.
 - **Supersedes:** nothing.
 - **Source:** `PTAutoRoute/test/` (harness, `check.cmd`, `run.lua`, `fs.lua`); developer approval, 2026-09-29.
+
+**Addendum to DL-021, 2026-09-29 — design item 2 approved: six-file layout for the Lua side.** Mirrors PTAutoRoute's layout: an entry script `lua/claudebridge.lua` plus modules in `lua/claudebridge/`, loaded with `require`; `/lua run claudebridge` starts it.
+
+- `claudebridge.lua`: MacroQuest adapter construction (every `mq.*` call sits behind it) and the outer run loop only, with no logic of its own. Syntax-checked locally; adapter wiring and the real poll loop are live-only.
+- `claudebridge/core.lua`: request text to reply. It decodes the text, validates shape and command, enforces the 2047-byte limit, and executes `ping`, `eval` and `eval_many`. Decode failure, wrong shape, an unknown command and an overlong expression all go through one path, so every bad-request case in criterion 10 has one home (criteria 1, 4, 5, 10, 12).
+- `claudebridge/queue.lua`: sequence selection, gaps, ignored names and `waiting_for_sequence` (criteria 2 and 10).
+- `claudebridge/store.lua`: filesystem operations over an injected file-system adapter: returns a request's text or "not readable yet", writes replies, publishes the heartbeat, appends events with event numbers (criteria 6 and 7). The heartbeat mechanism stays behind one function here, since it is still a candidate.
+- `claudebridge/loop.lua`: orchestration with two entry points, `step(now)` for one poll and `on_event(line, now)` for one heard line, so the order of operations (a reply is written before a request counts as completed; unreadable files are deferred; gap state reaches the heartbeat; heartbeat timing against an injected clock) and criterion 7's numbering and ordering are tested locally. The entry script's event callback only calls `on_event`.
+- `claudebridge/json.lua`: the vendored JSON library. Which one, and downloading it, needs the developer's permission.
+
+- **Reasoning recorded with it:** the boundary between modules was tightened after review. `store` distinguishes readable from not readable yet and leaves a not-readable file for the next poll (via `queue`); `core` owns everything from request text to reply, so the error reply for malformed JSON is not synthesized by another layer. `loop.lua` was added as a sixth file (Claude changed its earlier five-file recommendation) because the order of operations is an invariant, not glue, and would otherwise be live-only by accident.
+- **Deferred, with a link:** where "completed" lives (in memory, or durably, for example by a request counting as completed when its reply exists in `outbox`) belongs with the startup and restart item and affects `queue.lua` and `loop.lua`; not decided.
