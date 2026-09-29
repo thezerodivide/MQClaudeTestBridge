@@ -496,3 +496,16 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Checked:** locally, with a test that feeds a byte 0x80 or above into every listed field.
 - **Deferred, with a revisit trigger:** how bytes 0x80 and above are shown to Claude, and what encoding MacroQuest uses for non-ASCII text (unverified; Windows-1252 is a guess). Limitation accepted by the developer: until then Claude sees such a value only as base64, which a language model cannot reliably read, so such values are unreadable to Claude for now. **Revisit trigger:** the first real value with such bytes seen in live use, or the encoding evidence gathered at the live check. Non-ASCII expressions sent to the bridge may not match MacroQuest's strings if it uses Windows-1252; unknown, and rare.
 - **For a second reviewer, still open:** whether "contains the character name" in criteria 6 and 9 is satisfied by `character_base64`. The developer's stated reading is that it is.
+
+**Addendum to DL-021, 2026-09-29 — design item 17 approved: concurrent MCP tool calls.** Resolves criterion 8's Open (4).
+
+1. Only sequence allocation and publication are serialized (the lock from item 12).
+2. Several requests may be outstanding at once. The bridge handles them strictly in order, one at a time (criterion 2); each reply is matched to its call by sequence number.
+3. Each call has its own timeout, starting when its own request is successfully published.
+4. A timed-out call is never resent (criterion 8, unchanged).
+
+- **Alternatives not chosen:** serializing all calls (a stalled bridge would make five parallel calls wait through five timeouts back to back); rejecting a call made while another is waiting (Claude's parallel calls would fail for no good reason).
+- **Assumptions, unverified:** `eval` and `eval_many` are quick enough that requests rarely queue behind one another; concurrent tool calls from Claude Code reach the server.
+- **Worst case:** if the bridge stalls, several calls time out at about the same moment and the run is invalid, the same outcome as one timeout. There is no path to a hung server, because each wait has its own limit.
+- **Not in this item:** the timeout value (a first guess under Protocol §15, set with evidence) and the rule that a timeout invalidates the run (test-runner slice).
+- **For a second reviewer:** whether several outstanding requests could reorder replies or confuse matching by number.
