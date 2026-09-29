@@ -388,3 +388,12 @@ Entries below that supersede a specification item are indexed here so the supers
 - **Checked:** locally with a fake heartbeat that is absent or stale: `mq_eval` returns an error, the inbox is empty and no sequence number is used.
 - **Open (new):** whether MacroQuest scripts pause during zoning or loading screens, which would make a healthy bridge look stale for a moment. Untested; it bears on how the age limit is chosen and on the wording of the error.
 - **Criterion 8's Open (3) is closed by this decision.** Its other open items (timeout length, error shape, concurrent calls) stand.
+
+**Addendum to DL-021, 2026-09-29 — design item 6 approved: bridge startup rules.** They are a backstop, since `mq_eval` refuses to publish when the bridge is not alive (criterion 8 amendment); files can still be left by a crash or by the race between the liveness check and the publish.
+
+1. **Set the floor.** At startup the bridge notes the highest sequence number present in `inbox` and `outbox`. It never handles a request numbered at or below that floor (this is also the mechanism behind criterion 2's Assumption).
+2. **First new request sets the base.** The first complete request numbered above the floor defines where strict ordering begins, with no gap check on it. From then on criterion 2's rules apply exactly. This also covers the MCP counter being far ahead of an emptied folder (criterion 3: numbers never go backwards).
+3. **Log what was skipped.** Any request ignored at startup because it is at or below the floor is written to `events.jsonl`.
+
+- **Known limitation, accepted by the developer:** if the very first request after startup is itself lost, the bridge cannot tell, because it has no earlier number to compare against; only later gaps are detected. Slice 1 is read-only, so the harm is a wasted call. If the bridge restarts mid-session, in-flight requests are treated as stale and time out, which already invalidates a run (criterion 8).
+- **Not done, on purpose:** moving old files aside or cleaning folders (no criterion needs it; Protocol §3).
