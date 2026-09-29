@@ -367,3 +367,11 @@ Entries below that supersede a specification item are indexed here so the supers
 
 - **Reasoning recorded with it:** the boundary between modules was tightened after review. `store` distinguishes readable from not readable yet and leaves a not-readable file for the next poll (via `queue`); `core` owns everything from request text to reply, so the error reply for malformed JSON is not synthesized by another layer. `loop.lua` was added as a sixth file (Claude changed its earlier five-file recommendation) because the order of operations is an invariant, not glue, and would otherwise be live-only by accident.
 - **Deferred, with a link:** where "completed" lives (in memory, or durably, for example by a request counting as completed when its reply exists in `outbox`) belongs with the startup and restart item and affects `queue.lua` and `loop.lua`; not decided.
+
+**Addendum to DL-021, 2026-09-29 — design item 3 approved: four-file layout for the Python MCP server.** In `python/mq_mcp/`:
+
+- `server.py`: creates the MCP server (`MCPServer` in `mcp` 2.x), registers `mq_status` and `mq_eval`, and stays thin. The tools call the modules below and format results. It is the only file that depends on the `mcp` package.
+- `client.py`: everything about talking to the bridge. It checks expression length before publishing (criterion 12); allocates a sequence number and publishes the request as one serialized step, using the durable counter and the higher-of rule (criterion 3, including the concurrent-calls note); waits for the reply with a timeout and never resends (criterion 8).
+- `status.py`: the heartbeat side of `mq_status`: reads `heartbeat.json`, works out its age, judges liveness against the configured age limit, and detects whether the game process is running behind a small function that tests can fake (criterion 9).
+- `config.py`: reads `config.toml` with the standard library's `tomllib`, so no extra dependency.
+- **Deferred:** how the Python code is tested (next design item), where `.mcp.json` lives, and the `mcp` version pin, decided when the code exists.
