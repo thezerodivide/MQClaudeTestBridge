@@ -34,3 +34,11 @@ How this log works:
 - **Evidence:** commit `8f8701c`; the developer's answer keeping it (2026-09-29).
 - **Suggested:** CLAUDE.md (before every commit, list the files staged and check each against the docs-only rule).
 - **Triage:**
+
+### LL-004 — A single-step instruction must carry its own preconditions (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** Claude's first message about the spike 6 output test said to run it on a test character in Plane of Knowledge. After a discussion about how to present the steps, Claude's next message gave only the command `/lua run spike6a_output`, without the Plane of Knowledge precondition. The developer ran it in The Bazaar, whose zone name is too short for the test, so the script stopped itself without running any case. No harm, but a wasted run caused by the instruction, not by the developer. The developer had asked for one step at a time precisely so nothing depends on memory.
+- **Evidence:** `Logs\spike6a_log.txt` ("cannot build: zone name too short"); the developer's reply.
+- **Suggested:** CLAUDE.md (every live-test step message states the preconditions it needs, even if an earlier message did).
+- **Triage:**
