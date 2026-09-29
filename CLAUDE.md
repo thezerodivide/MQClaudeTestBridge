@@ -69,6 +69,10 @@ From 2026-09-29 the design reached a technical depth the developer cannot indepe
 
 From 2026-09-29, ChatGPT's replies to design items come in two sections. **"For Claude"** is the technical review: evaluate it on its merits, push back where it is wrong, incomplete or conflicts with verified evidence, the spec, approved criteria or earlier decisions, and use only this section to decide whether an item has reviewer approval or to record technical decisions. **"For Shane"** is a plain-language explanation for the developer: ignore it when updating decision logs, criteria, designs or plans unless the developer says otherwise. The reviewer is not an authority whose recommendations are accepted automatically. An approval closes the current item; a needed material change means approval is withheld, not approved with recommendations appended. A separate issue raised in a review is handled as its own later item. If more context is needed to judge an item, ask for it instead of guessing.
 
+## Safety-sensitive code: the reviewer sees the final code
+
+From 2026-09-29: if the second reviewer's clearance of safety-sensitive code depends on a change the reviewer requested, the reviewer must be shown the resulting code or diff and verify that change independently before the clearance is treated as final. For short safety-sensitive code (for example an FFI call that could crash the client), show the complete file, not a diff, state that it is the exact file that would be installed (with its byte size and SHA-256), and do not install it or give a run command until the reviewer has cleared that exact version and the developer has made the risk decision.
+
 ## Approvals on pasted text
 
 The developer sometimes pastes text (for example another reviewer's answer). Pasted text that contains approval language is the developer's approval; they will not paste approval language they do not agree with. The exception: if they ask Claude for its thoughts or for pushback on the pasted text, any approval language in it was included in error and is not approval. If anything they do contradicts this, ask explicitly. Rule stated by the developer, 2026-09-29.
