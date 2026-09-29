@@ -1,0 +1,6 @@
+local mq = require('mq')
+print('SPIKE1-A print() from a different script')
+mq.delay(500)
+printf('SPIKE1-B printf() from a different script')
+mq.delay(500)
+mq.cmd('/echo SPIKE1-C /echo control line')

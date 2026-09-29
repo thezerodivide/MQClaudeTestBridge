@@ -1,0 +1,21 @@
+| Spike 5 driver: can a fake tell fire mq.event? /delay is in tenths of a second.
+| Do NOT run autoinv during this test.
+Sub Main
+    /lua run spike5_listener
+    /delay 10
+    | Typed-style /echo lines (this macro's own commands)
+    /echo Spikefive tells you, 'inv'
+    /delay 10
+    /echo Spikefive tells you, 'INV'
+    /delay 10
+    /echo Spikefive tells you, ' inv '
+    /delay 10
+    /echo Spikefive tells you, 'inv please'
+    /delay 10
+    /echo Spikefive has left the group.
+    /delay 10
+    | The same kinds of line sent from a script
+    /lua run spike5_injector
+    /delay 40
+    /lua stop spike5_listener
+/return

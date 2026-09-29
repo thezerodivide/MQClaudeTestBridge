@@ -1,0 +1,35 @@
+09:23:17 | direct | target start
+09:23:18 | direct | tick 1
+09:23:18 | direct | tick 2
+09:23:19 | direct | event fired
+09:23:19 | direct | tick 3
+09:23:19 | direct | tick 4
+09:23:20 | direct | tick 5
+09:23:21 | direct | tick 6
+09:23:21 | direct | target end
+09:23:23 | runner | runner start, target = spike3_target
+09:23:23 | direct | target start
+09:23:23 | direct | tick 1
+09:23:24 | direct | tick 2
+09:23:24 | direct | event fired
+09:23:24 | direct | tick 3
+09:23:25 | direct | tick 4
+09:23:25 | direct | tick 5
+09:23:26 | direct | tick 6
+09:23:26 | direct | target end
+09:23:26 | runner | target returned normally: spike3-return
+09:23:26 | runner | runner end
+09:23:28 | runner | runner start, target = spike3_crashtarget
+09:23:28 | direct | crashtarget start
+09:23:28 | direct | about to error
+09:23:28 | runner | target error caught: C:/Users/Public/MacroQuest/lua/spike3_crashtarget.lua:12: SPIKE3 deliberate error after a delay
+stack traceback:
+	[C]: in function 'error'
+	C:/Users/Public/MacroQuest/lua/spike3_crashtarget.lua:12: in main chunk
+	[C]: in function 'xpcall'
+	C:\Users\Public\MacroQuest\lua\spike3_runner.lua:19: in main chunk
+09:23:28 | runner | runner end
+09:23:32 | runner | runner start, target = spike3_target
+09:23:32 | direct | target start
+09:23:32 | direct | tick 1
+09:23:33 | direct | tick 2

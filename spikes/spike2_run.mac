@@ -1,0 +1,31 @@
+| Spike 2 driver: runs the nine steps in order. /delay is in tenths of a second.
+Sub Main
+    | Step 1
+    /lua run spike2_recorder
+    /delay 10
+    | Step 2: start target, let it run
+    /lua run spike2_target
+    /delay 50
+    | Step 3: pause
+    /lua pause spike2_target
+    /delay 50
+    | Step 4: resume
+    /lua pause spike2_target
+    /delay 30
+    | Step 5: manual stop
+    /lua stop spike2_target
+    /delay 30
+    | Step 6: run and let it finish by itself (target runs 20 seconds)
+    /lua run spike2_target
+    /delay 250
+    | Step 7: same name again (new PID), then stop it
+    /lua run spike2_target
+    /delay 50
+    /lua stop spike2_target
+    /delay 10
+    | Step 8: deliberate crash (red error text expected)
+    /lua run spike2_crash
+    /delay 60
+    | Step 9
+    /lua stop spike2_recorder
+/return

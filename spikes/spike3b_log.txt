@@ -1,0 +1,44 @@
+listener started
+09:29:06 | STATUS | spike3b_crash_main = EXITED
+09:29:06 | STATUS | spike3b_crash_event = EXITED
+09:29:06 | STATUS | spike3b_crash_bind = EXITED
+09:29:07 | SCRIPT | crash_main start
+09:29:07 | CHAT | Running lua script 'spike3b_crash_main' with PID 58
+09:29:07 | STATUS | spike3b_crash_main = RUNNING
+09:29:08 | SCRIPT | crash_main about to error
+09:29:08 | CHAT | C:\Users\Public\MacroQuest\lua\spike3b_crash_main.lua:11: SPIKE3B main chunk errorstack traceback:	[C]: in function 'error'	C:\Users\Public\MacroQuest\lua\spike3b_crash_main.lua:11: in main chunk
+09:29:08 | CHAT | Ending lua script 'spike3b_crash_main' with PID 58 and status -1
+09:29:08 | STATUS | spike3b_crash_main = EXITED
+09:29:11 | SCRIPT | crash_event start
+09:29:11 | CHAT | Running lua script 'spike3b_crash_event' with PID 59
+09:29:11 | STATUS | spike3b_crash_event = RUNNING
+09:29:12 | SCRIPT | crash_event tick 1
+09:29:12 | SCRIPT | crash_event handler running
+09:29:12 | SCRIPT | crash_event tick 2
+09:29:12 | CHAT | SPIKE3B-TRIGGER
+09:29:12 | CHAT | C:\Users\Public\MacroQuest\lua\spike3b_crash_event.lua:11: SPIKE3B event handler errorstack traceback:	[C]: in function 'error'	C:\Users\Public\MacroQuest\lua\spike3b_crash_event.lua:11: in function <C:\Users\Public\MacroQuest\lua\spike3b_crash_event.lua:9>
+09:29:13 | SCRIPT | crash_event tick 3
+09:29:13 | SCRIPT | crash_event tick 4
+09:29:14 | SCRIPT | crash_event tick 5
+09:29:14 | SCRIPT | crash_event tick 6
+09:29:15 | SCRIPT | crash_event tick 7
+09:29:15 | SCRIPT | crash_event tick 8
+09:29:15 | SCRIPT | crash_event end
+09:29:15 | CHAT | Ending lua script 'spike3b_crash_event' with PID 59 and status 0
+09:29:15 | STATUS | spike3b_crash_event = EXITED
+09:29:17 | SCRIPT | crash_bind start
+09:29:17 | CHAT | Running lua script 'spike3b_crash_bind' with PID 60
+09:29:17 | STATUS | spike3b_crash_bind = RUNNING
+09:29:18 | SCRIPT | crash_bind tick 1
+09:29:18 | SCRIPT | crash_bind tick 2
+09:29:18 | SCRIPT | crash_bind handler running
+09:29:18 | CHAT | C:\Users\Public\MacroQuest\lua\spike3b_crash_bind.lua:11: SPIKE3B bind handler errorstack traceback:	[C]: in function 'error'	C:\Users\Public\MacroQuest\lua\spike3b_crash_bind.lua:11: in function <C:\Users\Public\MacroQuest\lua\spike3b_crash_bind.lua:9>
+09:29:19 | SCRIPT | crash_bind tick 3
+09:29:19 | SCRIPT | crash_bind tick 4
+09:29:20 | SCRIPT | crash_bind tick 5
+09:29:20 | SCRIPT | crash_bind tick 6
+09:29:21 | SCRIPT | crash_bind tick 7
+09:29:21 | SCRIPT | crash_bind tick 8
+09:29:21 | SCRIPT | crash_bind end
+09:29:21 | CHAT | Ending lua script 'spike3b_crash_bind' with PID 60 and status 0
+09:29:21 | STATUS | spike3b_crash_bind = EXITED

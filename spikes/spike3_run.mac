@@ -1,0 +1,21 @@
+| Spike 3 driver. /delay is in tenths of a second.
+Sub Main
+    | A: target run directly, with a ping event sent mid-run
+    /lua run spike3_target
+    /delay 12
+    /echo SPIKE3-PING
+    /delay 40
+    | B: same target through the runner, same ping
+    /lua run spike3_runner spike3_target
+    /delay 12
+    /echo SPIKE3-PING
+    /delay 40
+    | C: crashing target through the runner
+    /lua run spike3_runner spike3_crashtarget
+    /delay 40
+    | D: target through the runner, stopped mid-run
+    /lua run spike3_runner spike3_target
+    /delay 15
+    /lua stop spike3_runner
+    /delay 30
+/return

@@ -1,0 +1,37 @@
+recorder started
+09:18:23 | name:spike2_crash = EXITED returns=0 return=<nil>
+09:18:23 | name:spike2_target = EXITED returns=0 return=<nil>
+09:18:23 | pid:1 = RUNNING returns=0 return=<nil>
+09:18:23 | PIDs = 1
+09:18:24 | pid:44 = RUNNING returns=0 return=<nil>
+09:18:24 | PIDs = 1,44
+09:18:25 | name:spike2_target = RUNNING returns=0 return=<nil>
+09:18:25 | pid:45 = RUNNING returns=0 return=<nil>
+09:18:25 | PIDs = 1,44,45
+09:18:30 | name:spike2_target = PAUSED returns=0 return=<nil>
+09:18:30 | pid:45 = PAUSED returns=0 return=<nil>
+09:18:35 | name:spike2_target = RUNNING returns=0 return=<nil>
+09:18:35 | pid:45 = RUNNING returns=0 return=<nil>
+09:18:38 | name:spike2_target = EXITED returns=0 return=<nil>
+09:18:38 | pid:45 = EXITED returns=0 return=<nil>
+09:18:38 | PIDs = 1,44
+09:18:41 | name:spike2_target = RUNNING returns=0 return=<nil>
+09:18:41 | pid:46 = RUNNING returns=0 return=<nil>
+09:18:41 | pid:45 = <nil> returns=<nil> return=<nil>
+09:18:41 | PIDs = 1,44,46
+09:19:00 | name:spike2_target = EXITED returns=2 return=function: 0x00ce4258,target-done
+09:19:00 | pid:46 = EXITED returns=2 return=function: 0x00ce4258,target-done
+09:19:00 | PIDs = 1,44
+09:19:06 | name:spike2_target = RUNNING returns=0 return=<nil>
+09:19:06 | pid:46 = <nil> returns=<nil> return=<nil>
+09:19:06 | pid:47 = RUNNING returns=0 return=<nil>
+09:19:06 | PIDs = 1,44,47
+09:19:11 | name:spike2_target = EXITED returns=0 return=<nil>
+09:19:11 | pid:47 = EXITED returns=0 return=<nil>
+09:19:11 | PIDs = 1,44
+09:19:11 | pid:48 = RUNNING returns=0 return=<nil>
+09:19:11 | name:spike2_crash = RUNNING returns=0 return=<nil>
+09:19:11 | PIDs = 1,44,48
+09:19:13 | pid:48 = EXITED returns=0 return=<nil>
+09:19:13 | name:spike2_crash = EXITED returns=0 return=<nil>
+09:19:13 | PIDs = 1,44

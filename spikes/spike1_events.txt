@@ -1,0 +1,4 @@
+listener started
+09:01:55 | SPIKE1-A print() from a different script
+09:01:56 | SPIKE1-B printf() from a different script
+09:01:57 | SPIKE1-C /echo control line

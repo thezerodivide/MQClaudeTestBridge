@@ -15,3 +15,6 @@ venv/
 
 # Windows folder metadata
 desktop.ini
+
+# Third-party reference source (MacroQuest), local only - not pushed
+references/

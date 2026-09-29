@@ -1,0 +1,19 @@
+| Spike 3b driver: does the bridge's listener hear Lua crash text? /delay is in tenths of a second.
+Sub Main
+    /lua run spike3b_listener
+    /delay 10
+    | 1: crash in the main chunk
+    /lua run spike3b_crash_main
+    /delay 40
+    | 2: crash inside an mq.event handler
+    /lua run spike3b_crash_event
+    /delay 10
+    /echo SPIKE3B-TRIGGER
+    /delay 50
+    | 3: crash inside an mq.bind handler
+    /lua run spike3b_crash_bind
+    /delay 10
+    /spike3bbind
+    /delay 50
+    /lua stop spike3b_listener
+/return

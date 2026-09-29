@@ -1,0 +1,21 @@
+listener started
+09:38:28 | TELL EVENT | line=[Spikefive tells you, 'inv'] sender=[Spikefive] body=[inv]
+09:38:28 | RAW CHAT | Spikefive tells you, 'inv'
+09:38:29 | TELL EVENT | line=[Spikefive tells you, 'INV'] sender=[Spikefive] body=[INV]
+09:38:29 | RAW CHAT | Spikefive tells you, 'INV'
+09:38:30 | TELL EVENT | line=[Spikefive tells you, ' inv '] sender=[Spikefive] body=[ inv ]
+09:38:30 | RAW CHAT | Spikefive tells you, ' inv '
+09:38:31 | TELL EVENT | line=[Spikefive tells you, 'inv please'] sender=[Spikefive] body=[inv please]
+09:38:31 | RAW CHAT | Spikefive tells you, 'inv please'
+09:38:32 | LEAVE EVENT | line=[Spikefive has left the group.] player=[Spikefive]
+09:38:32 | RAW CHAT | Spikefive has left the group.
+09:38:33 | INJECT | script mq.cmd /echo tell
+09:38:33 | TELL EVENT | line=[Spikefive tells you, 'inv'] sender=[Spikefive] body=[inv]
+09:38:33 | RAW CHAT | Spikefive tells you, 'inv'
+09:38:34 | INJECT | script print() tell
+09:38:34 | TELL EVENT | line=[Spikefive tells you, 'inv'] sender=[Spikefive] body=[inv]
+09:38:34 | RAW CHAT | Spikefive tells you, 'inv'
+09:38:35 | INJECT | script mq.cmd /echo group leave
+09:38:35 | LEAVE EVENT | line=[Spikefive has left the group.] player=[Spikefive]
+09:38:35 | RAW CHAT | Spikefive has left the group.
+09:38:35 | INJECT | done
