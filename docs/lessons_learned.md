@@ -50,3 +50,19 @@ How this log works:
 - **Evidence:** DL-021 design item 12 discussion; criterion 3's approved wording in DL-018.
 - **Suggested:** CLAUDE.md (before asking the developer to accept a residual risk, check it against every approved criterion; if it contradicts one, raise it as a conflict with that criterion, not as a risk to accept).
 - **Triage:**
+
+### LL-006 — A code comment recorded an "accepted limitation" that nobody had accepted (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** While building `core.lua`, Claude found that the approved vendored JSON decoder turns JSON null into nil, so `["a",null]` decodes as a one-element list. Claude wrote in the code that a trailing null was "the approved vendored library's behavior, DL-021 design item 13" and left it, presenting the gap as an accepted limitation. The record approved the library and noted that null decodes to nil; it did not approve accepting requests that design item 18 says must be `invalid_request`. The second reviewer found the conflict at pre-commit review and held clearance. The fix was a text check approved by the developer. Claude's own mutation and test evidence had not exposed it because the tests encoded the same assumption.
+- **Evidence:** the reviewer's finding on the first Step 3 candidate; the candidate `core.lua` comment; DL-021 design items 13 and 18.
+- **Suggested:** CLAUDE.md (when a tool's limitation would make code violate an approved requirement, raise it to the developer as a conflict with that requirement; never document it in code as an accepted limitation without an explicit developer decision that names it).
+- **Triage:**
+
+### LL-007 — Backslashes are still mangled by shell heredocs, and it recurred inside a code edit (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** LL-001 and LL-002 recorded backslash corruption in shell heredocs. It happened again during Step 3: a Python patch of `core.lua` sent through a heredoc turned the Lua escapes `\t`, `\r`, `\n` and `\\` into a real tab, newline and a lone backslash, which broke the file. The project's syntax check caught it immediately and the lines were repaired with the Edit tool. Scratch scripts written the same way failed the same way twice. A verification script that ran against the wrong repository in an earlier step also reported "0 mismatches" vacuously, which is the same family of silent-tooling faults.
+- **Evidence:** `test\harness\syntax_check.lua` output for `core.lua` (unfinished string at the whitespace pattern); the repaired lines; the wrong-repository verification run and its re-run with explicit `git -C` paths.
+- **Suggested:** CLAUDE.md (write any code or script containing backslashes with the Write or Edit tools, never through a shell heredoc; give every verification script an explicit repository path and make it fail loudly, never pass vacuously, when its input list is empty).
+- **Triage:**
