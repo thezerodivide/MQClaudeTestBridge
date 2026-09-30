@@ -803,3 +803,24 @@ test('after a failed append the next append starts with a newline, since the fai
   expect.equal(#lines, 2)
   expect.equal(json.decode(lines[2]).text, 'kept')
 end)
+
+-- DL-022 decisions 6 and 9: the loop must tell event-number exhaustion apart from any other events failure, so the store exports the
+-- fixed message that both open_events and append_event return at exhaustion.
+test('store.EXHAUSTED is the fixed message returned by open_events and by append_event at exhaustion (decisions 6, 9)', function()
+  expect.equal(type(store.EXHAUSTED), 'string')
+  expect.falsy(store.EXHAUSTED:find('[^\32-\126]'))
+  local at_max = store.new(fake_fs({ [EVENTS] = '{"n":999999999999999,"t":1,"kind":"chat"}\n' }), DIR)
+  local ok, err = at_max:open_events()
+  expect.equal(ok, nil)
+  expect.equal(err, store.EXHAUSTED)
+  local s = open_store({ [EVENTS] = '{"n":999999999999998,"t":1,"kind":"chat"}\n' })
+  expect.equal(s:append_event(2, 'chat', {}), 999999999999999)
+  local n, err2 = s:append_event(3, 'chat', {})
+  expect.equal(n, nil)
+  expect.equal(err2, store.EXHAUSTED)
+  -- an ordinary failure is not the exhaustion message
+  local s2, fs2 = open_store()
+  fs2.fail.append = function() return 'No space left on device' end
+  local _, err3 = s2:append_event(1, 'chat', {})
+  expect.truthy(err3 ~= store.EXHAUSTED)
+end)

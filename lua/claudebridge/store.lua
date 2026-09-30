@@ -52,6 +52,7 @@ end
 -- is ever handed out twice (criterion 7). A line numbered above it is not an event.
 local MAX_EVENT_N = 999999999999999
 local EXHAUSTED = 'event numbers are exhausted; no event was written'
+M.EXHAUSTED = EXHAUSTED   -- exported so the loop can tell exhaustion from any other events failure (DL-022 decisions 6 and 9)
 
 -- Design item 9: an event's `kind` is one of our own names, lower-case letters and underscores.
 local function valid_kind(kind)
