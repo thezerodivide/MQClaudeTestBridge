@@ -73,6 +73,18 @@ From 2026-09-29, ChatGPT's replies to design items come in two sections. **"For 
 
 From 2026-09-29: if the second reviewer's clearance of safety-sensitive code depends on a change the reviewer requested, the reviewer must be shown the resulting code or diff and verify that change independently before the clearance is treated as final. For short safety-sensitive code (for example an FFI call that could crash the client), show the complete file, not a diff, state that it is the exact file that would be installed (with its byte size and SHA-256), and do not install it or give a run command until the reviewer has cleared that exact version and the developer has made the risk decision.
 
+## Pre-commit review handoff (the second reviewer's exact-artifact process)
+
+The second reviewer reads only the review folder, a plain folder `MQClaudeTestBridge-Review` beside this checkout, with no `.git` (DL-023). Links, pasted code and chat text are not reviewable artifacts. Before any review of uncommitted files (code, or docs the reviewer should see), do all of this, in this order, and do not tell the reviewer the handoff is ready until step 4 has passed. Added by the developer's instruction, 2026-09-30, after a Step 4 handoff reached the reviewer without it (this rule had lived only in an earlier session and in reviewer pastes; LL-008).
+
+1. **Copy the exact candidate files** into the review folder's `candidate/` under their repo-relative paths (`candidate/lua/claudebridge/store.lua`, `candidate/docs/decision_log.md`, and so on). Include uncommitted documentation edits that the review depends on. Leave `candidate/README.txt` and `.codex/` alone.
+2. **List each file in the review folder's `MANIFEST.txt`** as a candidate entry: the full 64-character SHA-256, the repo path and the byte size, and update the manifest's classification line so it says which files are candidates. Committed entries stay as they were.
+3. **Verify by program, not by eye:** each candidate is byte-identical to its source in this checkout (compare the bytes and recompute the SHA-256), the manifest hashes match the files, and the committed section still matches the source commit named in the manifest. Report anything else found in the folder.
+4. **Give the handoff in plain text:** for each file its repo path, byte size and complete 64-character SHA-256, with no markdown file links (the reviewer cannot open them) and no abbreviated hashes. Say what evidence tier applies (Protocol §10) and that the reviewer has not run the tests unless it has.
+5. **After the commit and push, refresh the folder** from the pushed commit (`git archive`, line-ending conversion off), regenerate the manifest, and remove the candidates, leaving `candidate/README.txt`. A refresh also happens before any review when the source commit has moved.
+
+A checklist is enough: it worked by hand twice, so a script would be more than the risk warrants (LL-009). If a reviewer asks for a change and the candidate is edited, repeat steps 1 to 4 for the changed files; a hash in an earlier handoff is then stale.
+
 ## Approvals on pasted text
 
 The developer sometimes pastes text (for example another reviewer's answer). Pasted text that contains approval language is the developer's approval; they will not paste approval language they do not agree with. The exception: if they ask Claude for its thoughts or for pushback on the pasted text, any approval language in it was included in error and is not approval. If anything they do contradicts this, ask explicitly. Rule stated by the developer, 2026-09-29.
