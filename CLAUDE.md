@@ -77,6 +77,8 @@ From 2026-09-29: if the second reviewer's clearance of safety-sensitive code dep
 
 The developer sometimes pastes text (for example another reviewer's answer). Pasted text that contains approval language is the developer's approval; they will not paste approval language they do not agree with. The exception: if they ask Claude for its thoughts or for pushback on the pasted text, any approval language in it was included in error and is not approval. If anything they do contradicts this, ask explicitly. Rule stated by the developer, 2026-09-29.
 
+**Refinement from the retrospective (developer's, agreed 2026-09-29).** A paste that is the developer's whole message, with no words of their own, is information only, not approval. The developer labels a paste on its first line: "Approved:" when it carries their approval, "FYI, not approval:" when it does not. A second reviewer's clearance or "clear to begin" text is never the developer's go-ahead to start a step or to commit; that comes only in the developer's own words, and until then Claude states that the step has not started and holds. What prompted it, 2026-09-29: a Step 2 call-out was pasted as the whole message and Claude began reading requirements before the go-ahead (nothing was changed), and a Step 3 call-out arrived the same way and Claude held.
+
 ## Commits and pushes
 
 - **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
