@@ -66,3 +66,19 @@ How this log works:
 - **Evidence:** `test\harness\syntax_check.lua` output for `core.lua` (unfinished string at the whitespace pattern); the repaired lines; the wrong-repository verification run and its re-run with explicit `git -C` paths.
 - **Suggested:** CLAUDE.md (write any code or script containing backslashes with the Write or Edit tools, never through a shell heredoc; give every verification script an explicit repository path and make it fail loudly, never pass vacuously, when its input list is empty).
 - **Triage:**
+
+### LL-008 — The recorded state repeatedly lagged the real state (2026-09-29)
+
+- **Area:** AI-behavior
+- **What happened:** Several times during the session the ledger and `CLAUDE.md` fell behind what had actually happened. After the first push the ledger still named an older commit for the review folder; after Steps 1 and 2 were pushed it still said nothing beyond spikes was built, or that Step 2 had not started; the push policy text still said every push asks; `CLAUDE.md` still said "nothing is built"; and a ledger line Claude wrote to say local and remote were synchronized at a named commit was stale one commit later, because a line that names HEAD is always one commit behind the commit that edits it. The second reviewer found most of these, and each was corrected only after it was pointed out. The developer's retrospective named documentation discipline as the one thing Claude needs to improve.
+- **Evidence:** the reconciliation commits `ce371f9`, `c656306` and `9089c74`; the second reviewer's stale-versus-historical review; the developer's retrospective (2026-09-29).
+- **Suggested:** CLAUDE.md (in the same step as any commit, push, review-folder refresh or completed step, update the ledger and check it against `git log`, `git ls-remote` and the review folder's manifest; never record the hash of HEAD in the ledger; treat a stale ledger as a defect Claude should find, not one the reviewer finds).
+- **Triage:**
+
+### LL-009 — A safeguard grew far beyond its risk: hours spent on read isolation (2026-09-29)
+
+- **Area:** process
+- **What happened:** To let the second reviewer read the project safely, the developer and Claude built a review clone with three independently tested push locks, proposed branch protection on `main`, and then the developer spent about three and a half hours trying to confine the reviewer's tool to reading one folder. The read restriction turned out not to be enforceable, and a write restriction to the review folder, confirmed by write tests and a network control test, was enough for the real risk (damage to the development repository or GitHub). The developer's retrospective named this as overengineering. Claude contributed: it proposed and built the clone locks and the branch-protection ruleset before asking which capability the risk actually needed to be closed.
+- **Evidence:** the DL-023 addenda (clone and locks, the plain review folder, the final tested state); the developer's retrospective (2026-09-29).
+- **Suggested:** CLAUDE.md (before adding a safeguard, state in one sentence the loss it prevents and the cheapest control that prevents it; when a second or third control is proposed for the same risk, or one control has taken more than an hour, Claude says plainly that the design may be overengineered; the developer asked Claude to call this out directly).
+- **Triage:**
