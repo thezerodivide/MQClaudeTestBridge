@@ -690,3 +690,70 @@ test('string_field writes exactly one of name and name_base64, and null for nil 
   expect.equal(core.string_field('value', '\255'), '"value_base64":"/w=="')
   expect.equal(core.string_field('character', nil), '"character":null')
 end)
+
+-- ---- Decision 4 (DL-022 addendum, 2026-09-30): core.oversize_reply(seq) ---------------------------------------------------------
+-- Criterion 13: a request file over the limit is checked by size before reading and is never read or decoded; it gets an error
+-- reply with its sequence number. The store reports such a file as too_large without its contents, so the loop needs the reply
+-- without request text. core.oversize_reply(seq) returns the reply text and the summary, built by the one error path; core.handle
+-- delegates its own in-memory oversized-text case to it, so the two cannot drift. Design items 14, 15 and 20 (limit, distinct kind
+-- request_too_large, fixed ASCII message).
+
+local function oversize_text() return string.rep('x', core.MAX_REQUEST_BYTES + 1) end
+
+test('oversize_reply and handle on an oversized request return identical reply text and identical summaries (decision 4)', function()
+  -- Sequence numbers are the internal form queue.lua produces: unpadded decimal strings (a padded one such as '000007' is outside
+  -- the contract and would be written as the invalid JSON number 000007, which the lenient vendored decoder nevertheless accepts).
+  for _, seq in ipairs({ '7', '70', '1000000', '123456789012345678901234567890' }) do
+    local r1, s1 = core.handle(fake_env(), seq, oversize_text())
+    local r2, s2 = core.oversize_reply(seq)
+    expect.equal(r2, r1)
+    expect.equal(s2, s1)
+    expect.truthy(r2:find('"seq":' .. seq .. ',', 1, true))   -- the exact digits, with no leading zero
+    expect.falsy(r2:find('"seq":0[0-9]'))
+    expect.equal(decoded(r2).ok, false)
+  end
+end)
+
+test('the oversize reply keeps the sequence number and the request_too_large kind, with the fixed message (criterion 13, items 15, 20)', function()
+  local reply, summary = core.oversize_reply('7')
+  local d = decoded(reply)
+  expect.equal(d.seq, 7)
+  expect.equal(d.ok, false)
+  expect.equal(d.error.kind, 'request_too_large')
+  expect.equal(d.error.message, 'request is larger than 32768 bytes; it was not decoded')
+  expect.equal(summary.kind, 'request_too_large')
+  expect.equal(summary.message, d.error.message)
+  expect.equal(summary.command, nil)
+end)
+
+test('the oversize reply has exactly the fields seq, ok and error (kind, message), and is printable ASCII (items 8, 20)', function()
+  local reply = core.oversize_reply('42')
+  local d = decoded(reply)
+  local keys = {}
+  for k in pairs(d) do keys[#keys + 1] = k end
+  table.sort(keys)
+  expect.equal(keys, { 'error', 'ok', 'seq' })
+  expect.equal(d.error.kind ~= nil and d.error.message ~= nil, true)
+  expect.truthy(printable_ascii(reply))
+end)
+
+test('the oversize reply writes the sequence number as its exact digits, even beyond a Lua number (item 8)', function()
+  local reply = core.oversize_reply('123456789012345678901234567890')
+  expect.truthy(reply:find('"seq":123456789012345678901234567890,', 1, true))
+end)
+
+test('oversize_reply needs no request text and no game access: it takes only the sequence number (decision 4, criterion 13)', function()
+  -- It is called with nothing but a sequence number; a call that touched an env or a text would fail here.
+  local ok, reply, summary = pcall(core.oversize_reply, '9')
+  expect.equal(ok, true)
+  expect.equal(type(reply), 'string')
+  expect.equal(type(summary), 'table')
+end)
+
+test('a request at exactly the limit is still handled, not refused by the oversize path (criterion 13, item 14)', function()
+  -- Guards the delegation: only text strictly over the limit takes the oversize path.
+  local text = '{"command":"ping","pad":"' .. string.rep('x', core.MAX_REQUEST_BYTES - 27) .. '"}'
+  expect.equal(#text, core.MAX_REQUEST_BYTES)
+  local reply = core.handle(fake_env(), '8', text)
+  expect.equal(decoded(reply).ok, true)
+end)

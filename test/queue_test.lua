@@ -279,3 +279,79 @@ test('an empty inbox yields nothing to do and no gap (criterion 2)', function()
   expect.equal(#r.stale, 0)
 end)
 
+
+-- ---- Decision 5 (DL-022 addendum, 2026-09-30): queue.highest, the startup floor ----------------------------------------------
+-- queue.highest(inbox_names, outbox_names) returns the highest canonical sequence number found in either listing, as an
+-- unpadded decimal string, or nil if there is none. Source: design item 6 (at startup the bridge notes the highest sequence
+-- number present in inbox and outbox) and design item 8 (canonical names only; ordering by number, never by name text; no upper
+-- bound on a sequence number). It is pure, shares queue.lua's parser and comparison, and never uses tonumber.
+
+test('the highest number may come from the inbox or from the outbox (decision 5, design item 6)', function()
+  expect.equal(queue.highest({ '000007.json', '000003.json' }, { '000005.json' }), '7')
+  expect.equal(queue.highest({ '000003.json' }, { '000005.json', '000009.json' }), '9')
+end)
+
+test('the result does not depend on the order of the names or of the two listings (decision 5)', function()
+  local a, b = { '000010.json', '000002.json', '000033.json' }, { '000004.json', '000031.json' }
+  expect.equal(queue.highest(a, b), '33')
+  expect.equal(queue.highest(b, a), '33')
+  expect.equal(queue.highest({ '000033.json', '000010.json', '000002.json' }, { '000031.json', '000004.json' }), '33')
+end)
+
+test('names that are not canonical are ignored by the existing parser rules, even when their digits are larger (design item 8)', function()
+  -- 1.json (too short), 0000012.json (padded past six digits), 000123.JSON (wrong case), 000123.json.tmp (a temporary name),
+  -- notes.txt: none is a request or reply name, so none can raise the floor.
+  local names = { '1.json', '0000012.json', '000123.JSON', '000123.json.tmp', 'notes.txt', '000050.json' }
+  expect.equal(queue.highest(names, {}), '50')
+  expect.equal(queue.highest({}, names), '50')
+end)
+
+test('the result is the unpadded decimal string: six-digit padding is removed (design item 8)', function()
+  expect.equal(queue.highest({ '000123.json' }, {}), '123')
+  expect.equal(queue.highest({ '000000.json' }, {}), '0')
+end)
+
+test('ordering is by number, never by name text: 999999 is below 1000000 (design item 8, six-to-seven digit boundary)', function()
+  -- As text, '1000000.json' sorts before '999999.json'.
+  expect.equal(queue.highest({ '999999.json' }, { '1000000.json' }), '1000000')
+  expect.equal(queue.highest({ '1000000.json' }, { '999999.json' }), '1000000')
+end)
+
+test('numbers too long for a Lua number compare exactly: two different same-length 30-digit values (design item 8, no upper bound)', function()
+  -- 123456789012345678901234567890 and ...891 differ only in the last digit; as Lua numbers (doubles) they are equal, so an
+  -- implementation that used tonumber could not tell them apart. The larger exact decimal string must win, from either listing.
+  local low, high = '123456789012345678901234567890', '123456789012345678901234567891'
+  expect.equal(queue.highest({ low .. '.json' }, { high .. '.json' }), high)
+  expect.equal(queue.highest({ high .. '.json' }, { low .. '.json' }), high)
+  expect.equal(queue.highest({ low .. '.json', high .. '.json' }, {}), high)
+  -- and a longer number beats a shorter one whose leading digits are larger
+  expect.equal(queue.highest({ '99999999999999999999999999999.json' }, { '100000000000000000000000000000.json' }), '100000000000000000000000000000')
+end)
+
+test('empty listings, and listings with only non-canonical names, give nil (decision 5: no floor)', function()
+  expect.equal(queue.highest({}, {}), nil)
+  expect.equal(queue.highest({ '1.json', 'notes.txt', '000123.json.tmp' }, { '0000012.json' }), nil)
+end)
+
+test('select agrees with highest about what counts as the highest completed reply (one scanner inside queue.lua, decision 5)', function()
+  -- select's completed-number rule must use the same parser and comparison as highest: with replies 999999 and 1000000 the
+  -- next request is 1000001, and a 30-digit reply is recognized as completed, blocking a request at or below it.
+  expect.equal(nxt(sel({ '1000001.json' }, { '999999.json', '1000000.json' }, '999998')), '1000001.json')
+  local big = '123456789012345678901234567890'
+  local r = sel({ '123456789012345678901234567890.json', '123456789012345678901234567891.json' }, { big .. '.json' }, '5')
+  expect.equal(nxt(r), '123456789012345678901234567891.json')
+  expect.equal(reasons_by_name(r.stale)['123456789012345678901234567890.json'], 'completed')
+end)
+
+test('select recognizes the highest of two 30-digit replies exactly, whichever order they are listed in (decision 5: no tonumber in select either)', function()
+  -- The two numbers differ only in the last digit, so as Lua numbers they are equal; if select scanned the outbox with tonumber it
+  -- would take the first one listed as the highest completed reply and treat the other as the next request. With the exact
+  -- comparison both are completed: nothing is left to handle and both are reported stale.
+  local low, high = '123456789012345678901234567890', '123456789012345678901234567891'
+  for _, outbox in ipairs({ { low .. '.json', high .. '.json' }, { high .. '.json', low .. '.json' } }) do
+    local r = sel({ low .. '.json', high .. '.json' }, outbox, '5')
+    expect.equal(r.next, nil)
+    expect.equal(#r.stale, 2)
+    expect.equal(r.waiting_for_sequence, nil)
+  end
+end)

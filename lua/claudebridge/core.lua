@@ -227,13 +227,22 @@ function commands.eval_many(env, seq, request, text)
     return reply, { command = 'eval_many', kind = 'ok' }
 end
 
+-- oversize_reply(seq) -> reply_text, summary (decision 4, DL-022; criterion 13). The reply for a request file that is over the size
+-- limit and was therefore never read: built by the one error path, with the distinct kind request_too_large and the fixed message.
+-- It takes no request text and no game access, and the file's reported size does not enter the reply (the message stays fixed
+-- ASCII). The loop calls it when the store reports a file as too large; handle calls it for an oversized text, so the two paths
+-- cannot drift apart.
+function M.oversize_reply(seq)
+    return error_reply(seq, 'request_too_large', MSG.too_large)
+end
+
 -- handle(env, seq, text) -> reply_text, summary
 -- summary = { command = 'ping' | 'eval' | 'eval_many' | nil, kind = 'ok' | an error kind, message = the fixed error
 -- message or nil } for the loop's log. The command is nil whenever it was not recognized (undecodable, no command,
 -- unsupported): a command name from a request is external text and is never passed on.
 function M.handle(env, seq, text)
     -- Criterion 13: a request over the limit is never decoded.
-    if #text > M.MAX_REQUEST_BYTES then return error_reply(seq, 'request_too_large', MSG.too_large) end
+    if #text > M.MAX_REQUEST_BYTES then return M.oversize_reply(seq) end
 
     local ok, request = pcall(json.decode, text)
     if not ok then return error_reply(seq, 'invalid_request', MSG.decode) end

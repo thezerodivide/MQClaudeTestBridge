@@ -53,6 +53,24 @@ local function successor(key)
     return table.concat(digits)
 end
 
+-- The highest canonical number among `names` and `best` (an unpadded decimal string or nil), or nil if there is none. The one
+-- scanner in this file (decision 5, DL-022): select and highest both use it, so they cannot disagree about what a canonical
+-- name is or how two numbers compare. Never uses tonumber: numbers have no upper bound (design item 8).
+local function highest_key(names, best)
+    for _, name in ipairs(names) do
+        local key = parse(name)
+        if key and (best == nil or compare(key, best) > 0) then best = key end
+    end
+    return best
+end
+
+-- highest(inbox_names, outbox_names) -> the highest canonical sequence number found in either listing, as an unpadded decimal
+-- string ('123'), or nil if there is none. The startup floor (design item 6, decision 5): the loop calls it once at startup
+-- with both listings and passes the result to select as `floor`. Pure.
+function M.highest(inbox_names, outbox_names)
+    return highest_key(outbox_names, highest_key(inbox_names))
+end
+
 -- select(inbox_names, outbox_names, floor) -> {
 --     next = { name = '000123.json', seq = '123', base = true } or nil   -- the one request to handle now, if any;
 --                                                                         -- base is true only under the base rule
@@ -68,11 +86,7 @@ end
 function M.select(inbox_names, outbox_names, floor)
     local result = { next = nil, waiting_for_sequence = nil, ignored = {}, stale = {} }
 
-    local highest
-    for _, name in ipairs(outbox_names) do
-        local key = parse(name)
-        if key and (highest == nil or compare(key, highest) > 0) then highest = key end
-    end
+    local highest = highest_key(outbox_names)
     local completed_since_startup = highest ~= nil and (floor == nil or compare(highest, floor) > 0)
 
     local candidates = {}
