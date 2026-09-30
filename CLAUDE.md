@@ -105,7 +105,7 @@ The developer's retrospective at the end of the first full build day (recorded a
 
 ## Commits and pushes
 
-- **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
+- **Documentation-only commits and pushes:** no explicit approval needed, as long as they pass the safety gates below (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar). Developer's rule, 2026-09-30. A range that includes any code or other non-docs commit is not docs-only: that commit's own rule applies, and it needs the developer's explicit permission.
 - **Commits that include code** (`.lua`, `.py`, macros, or anything that changes runtime behavior): ask first.
 - **Any other commit** (neither docs nor code, such as `.gitignore`, generated data or logs): ask first.
 - **Pushes:** governed by the repository durability policy below. This replaces the earlier rule of 2026-09-29 ("every push asks").
