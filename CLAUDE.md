@@ -79,6 +79,14 @@ The developer sometimes pastes text (for example another reviewer's answer). Pas
 
 **Refinement from the retrospective (developer's, agreed 2026-09-29).** A paste that is the developer's whole message, with no words of their own, is information only, not approval. The developer labels a paste on its first line: "Approved:" when it carries their approval, "FYI, not approval:" when it does not. A second reviewer's clearance or "clear to begin" text is never the developer's go-ahead to start a step or to commit; that comes only in the developer's own words, and until then Claude states that the step has not started and holds. What prompted it, 2026-09-29: a Step 2 call-out was pasted as the whole message and Claude began reading requirements before the go-ahead (nothing was changed), and a Step 3 call-out arrived the same way and Claude held.
 
+## Working agreements from the 2026-09-29 retrospective
+
+The developer's retrospective at the end of the first full build day (recorded as LL-008 and LL-009 in `docs/lessons_learned.md`). These are in this file so they apply in any session, whatever memory it has.
+
+- **End replies with status, not a question.** The developer finds it hard to ignore a question, and it pulls their attention off what they are doing. Ask only when truly blocked; then ask exactly one, as the last line, never mixed with status. When told to hold, hold.
+- **Keep the record in step with the real state.** In the same step as any commit, push, review-folder refresh or completed build step, update `docs/project_ledger.md` and check it against `git log`, `git ls-remote` and the review folder's `MANIFEST.txt`. Never write the hash of HEAD in the ledger (it is stale one commit later). Find stale text before the second reviewer does. Append-only history in `docs/decision_log.md` is not rewritten just because it is old.
+- **Call out overengineering, directly.** Before building a safeguard, state the loss it prevents and the cheapest control that prevents it. If a second or third control is proposed for the same risk, or one control has run past about an hour, say plainly "this may be overengineered" and name the simpler option. The developer asked for this, and it applies to Claude's own proposals too. Principle the developer agreed: a perfect solution is not needed when good enough will suffice.
+
 ## Commits and pushes
 
 - **Documentation-only commits:** no permission needed (spec, ledger, decision log, lessons log, `CLAUDE.md`, README and similar).
