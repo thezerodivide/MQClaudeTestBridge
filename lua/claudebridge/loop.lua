@@ -50,6 +50,7 @@ function M.new(store, env)
         failed = nil,               -- the first fatal failure: { reason, detail }; sticky
         last_beat_ms = nil,         -- the monotonic reading of the last heartbeat attempt
         unreadable_logged = {},     -- request file names already logged as unreadable (one event per file, design item 19)
+        ignored_logged = {},        -- non-canonical inbox names already logged as ignored (one event per name per run, decision 10)
     }, L)
 end
 
@@ -75,6 +76,19 @@ local function record(self, now_s, kind, fields, reason)
     if not n then
         fail(self, reason or REASON.record, err)
         return false
+    end
+    return true
+end
+
+-- Design item 8 and decision 10: every distinct non-canonical INBOX name that queue.select reports is logged once per run as an ignored_name
+-- event (the name is external text, so the store writes it by the item 16 rule). No exception is made for temporary names, and nothing tracks a
+-- name that disappears and returns. Returns true, or false after setting the fatal state.
+local function log_ignored(self, now_s, selection)
+    for _, entry in ipairs(selection.ignored) do
+        if not self.ignored_logged[entry.name] then
+            self.ignored_logged[entry.name] = true
+            if not record(self, now_s, 'ignored_name', { { name = 'name', string = entry.name } }) then return false end
+        end
     end
     return true
 end
@@ -120,13 +134,16 @@ function L:start(now_s, now_ms)
     self.floor = floor
 
     -- Design item 6.3: every request at or below the floor is logged once, here. (By definition every request present at startup is.)
-    for _, entry in ipairs(queue.select(inbox, outbox, floor).stale) do
+    local selection = queue.select(inbox, outbox, floor)
+    for _, entry in ipairs(selection.stale) do
         if entry.reason == 'floor' then
             if not record(self, now_s, 'startup_skipped', { { name = 'seq', number = entry.seq } }) then
                 return nil, self.failed.reason, self.failed.detail
             end
         end
     end
+    -- Design item 8: the non-canonical names present at startup are logged here too, after the startup_skipped events.
+    if not log_ignored(self, now_s, selection) then return nil, self.failed.reason, self.failed.detail end
 
     beat(self, now_s, now_ms, nil, nil)     -- startup includes the first heartbeat attempt, before any step (decision 9)
     self.started = true
@@ -143,6 +160,7 @@ function L:step(now_s, now_ms)
     if not outbox then return fail(self, REASON.list_outbox, err) end
 
     local selection = queue.select(inbox, outbox, self.floor)
+    if not log_ignored(self, now_s, selection) then return end
     local unreadable
     local chosen = selection.next
     if chosen then

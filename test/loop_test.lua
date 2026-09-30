@@ -689,3 +689,101 @@ test('start after a failed startup returns nil and does nothing: the sticky fail
   L:step(T0 + 2, M0 + 200)
   expect.equal(#fs.ops, ops)
 end)
+
+-- ---- Decision 10 (DL-022, 2026-09-30): ignored_name events ----------------------------------------------------------------------------
+-- Design item 8: a request-folder file whose name is not the canonical form of its number "is ignored and logged". Decision 10 (Option A): a new
+-- bridge-generated event kind, ignored_name, with one field, name (external text: written by the item 16 rule, base64 when it has a byte
+-- 0x80 or above); every distinct non-canonical INBOX name is logged once per run, including names present at startup and ordinary .tmp names.
+-- Deliberately not done (no live evidence of a need): filtering temporary names, parsing their grammar, tracking a name's disappearance and
+-- return, rate limiting, batching.
+
+local function ignored_names(fs)
+  local out = {}
+  for _, e in ipairs(events_of_kind(fs, 'ignored_name')) do out[#out + 1] = e.name end
+  return out
+end
+
+test('every non-canonical inbox name present at startup is logged as an ignored_name event, .tmp names included, after the startup_skipped events (item 8, decision 10)', function()
+  local files = {
+    [INBOX .. name(1)] = PING,
+    [INBOX .. 'notes.txt'] = 'x',
+    [INBOX .. 'request-0123.tmp'] = '{"command":"ping"}',   -- an ordinary temporary name: no exception is made for it
+    [INBOX .. '1.json'] = PING,                              -- not canonical: too short
+  }
+  local L, fs = started(files)
+  expect.equal(kinds_of(fs), { 'bridge_start', 'startup_skipped', 'ignored_name', 'ignored_name', 'ignored_name' })
+  expect.equal(ignored_names(fs), { '1.json', 'notes.txt', 'request-0123.tmp' })   -- sorted by name, each once
+  expect.equal(events_of_kind(fs, 'ignored_name')[1].t, T0)
+end)
+
+test('each distinct name is logged once per run: not on later polls, and not again when a name disappears and returns (decision 10)', function()
+  local L, fs = started({ [INBOX .. 'notes.txt'] = 'x' })
+  for i = 1, 4 do L:step(T0, M0 + i * 100) end
+  expect.equal(ignored_names(fs), { 'notes.txt' })
+  fs.files[INBOX .. 'extra.dat'] = 'y'                       -- a new name appears later
+  L:step(T0 + 1, M0 + 500)
+  L:step(T0 + 1, M0 + 600)
+  expect.equal(ignored_names(fs), { 'notes.txt', 'extra.dat' })
+  fs.files[INBOX .. 'extra.dat'] = nil                       -- it disappears and comes back: no separate episode is tracked
+  L:step(T0 + 2, M0 + 700)
+  fs.files[INBOX .. 'extra.dat'] = 'y'
+  L:step(T0 + 2, M0 + 800)
+  expect.equal(ignored_names(fs), { 'notes.txt', 'extra.dat' })
+  expect.equal(events_of_kind(fs, 'ignored_name')[2].t, T0 + 1)   -- logged at the first poll that saw it
+end)
+
+test('a non-canonical name with a byte 0x80 or above is written as name_base64, exactly one of the two (item 16, decision 10)', function()
+  local L, fs = started({ [INBOX .. 'caf\195\169.txt'] = 'x' })
+  local e = events_of_kind(fs, 'ignored_name')[1]
+  expect.equal(e.name, nil)
+  expect.equal(e.name_base64, 'Y2Fmw6kudHh0')   -- base64 of the nine bytes of "caf" + 0xC3 0xA9 + ".txt", worked out by hand
+end)
+
+test('canonical names are not logged as ignored, and non-canonical names in the OUTBOX are not logged (item 8: request names; decision 10)', function()
+  local files = {
+    [INBOX .. name(1)] = PING,
+    [OUTBOX .. name(1)] = '{"seq":1}',
+    [OUTBOX .. '000002.json.tmp'] = 'half',                   -- the bridge's own temporary reply name
+    [OUTBOX .. 'stray.txt'] = 'z',
+  }
+  local L, fs = started(files)
+  L:step(T0, M0 + 100)
+  expect.equal(ignored_names(fs), {})
+end)
+
+test('logging an ignored name does not delay or block the request that is handled in the same step (decision 10)', function()
+  local L, fs = started()
+  fs.files[INBOX .. 'notes.txt'] = 'x'
+  put_request(fs, 1)
+  L:step(T0, M0 + 100)
+  expect.equal(ignored_names(fs), { 'notes.txt' })
+  expect.truthy(fs.files[OUTBOX .. name(1)])
+  expect.equal(#events_of_kind(fs, 'request'), 1)
+end)
+
+test('a failure to record an ignored_name event at runtime takes the fatal path, before any heartbeat in that step (decisions 6, 9, 10)', function()
+  local L, fs = started()
+  fs.files[INBOX .. 'notes.txt'] = 'x'
+  fs.fail.append = function(path) if path == EVENTS then return 'No space left on device' end end
+  L:step(T0, M0 + 1000)                                        -- a heartbeat is due in this very step
+  expect.equal(L:failure().reason, 'could not record an event')
+  expect.equal(L:failure().detail, 'No space left on device')
+  expect.equal(count_ops(fs, 'replace'), 1)                    -- only the startup heartbeat
+end)
+
+test('a failure to record an ignored_name event at startup stops startup with no heartbeat (decisions 6, 10)', function()
+  local L, fs = setup({ [INBOX .. 'notes.txt'] = 'x' })
+  local appends = 0
+  fs.fail.append = function(path)
+    if path == EVENTS then
+      appends = appends + 1
+      if appends == 2 then return 'No space left on device' end   -- bridge_start is the 1st append; the ignored_name event is the 2nd
+    end
+  end
+  local ok, reason, detail = L:start(T0, M0)
+  expect.equal(ok, nil)
+  expect.equal(reason, 'could not record an event')
+  expect.equal(detail, 'No space left on device')
+  expect.equal(fs.files[HEARTBEAT], nil)
+  expect.equal(kinds_of(fs), { 'bridge_start' })
+end)
