@@ -41,7 +41,7 @@ What the developer is unsure about.
 4. **Write acceptance criteria** with the developer, item by item.
 5. **No solutions before the acceptance criteria are approved.** Then propose the smallest design that meets them, with a recommendation and its reasoning, and list what is deliberately deferred (Protocol §3; scope creep is called out by either side).
 6. **Check the checkable first:** read the repo, `SPEC.md`, the ledger, the decision log, the MacroQuest source in `references/` and other repos before asking the developer.
-7. **Record it** in the decision log (below) and update the ledger. Docs-only commits need no permission, code commits do, and every push needs permission (see `CLAUDE.md`, "Commits and pushes").
+7. **Record it** in the decision log (below) and update the ledger. Docs-only commits need no permission and code commits do; a push follows the repository durability policy (see `CLAUDE.md`, "Commits and pushes").
 
 ## Decision log entry shape (new entries)
 
