@@ -6,18 +6,30 @@ How to start a new project with the same method this one (and PTAutoRoute before
 
 The spec says what the system must do. The decision log says why each material decision was made, append-only, in a fixed four-block shape. The ledger says what is true now, in four categories, updated in place. The Development Protocol and `CLAUDE.md` say how decisions are made and recorded. The developer facilitates and makes every decision and risk call; Claude drives the requirements conversation and surfaces what is verified, reasoned or unknown; an optional second reviewer (another AI) reviews and recommends but never decides. Work goes one change at a time, test-first, with tests that cite their source and are proven able to fail, and nothing is called ready beyond its evidence tier.
 
-## The documents, in the order a new project needs them
+## Documents copied from this project (the method itself)
 
-| # | Document | Job | Carry over how | Update rule |
-| --- | --- | --- | --- | --- |
-| 1 | `docs/Development_Protocol.txt` | The process contract (22 sections). | Copy; then swap the few runtime-specific spots listed below. | Changed only by the developer, at a retrospective. |
-| 2 | `CLAUDE.md` | The working agreement loaded every session: a summary of the Protocol's core rules, plus the rules about the reviewer, handoff headers, commits and pushes. | Copy the portable sections (table below); rewrite the project-specific ones. | In step with the code and the ledger (Protocol §18). |
-| 3 | `SPEC.md` | What the system must do; authoritative. Confirmed facts, requirements, non-goals, roadmap with checkable phase gates, risks and spikes. | Write new. Keep the habit of dated `[CLARIFIED]` or `[CORRECTED]` markers for any in-place change. | In place, never silently; re-read end to end before release or handoff (§18). |
-| 4 | `docs/decision_log.md` | Why each material decision was made. Starts with an "Active overrides index" so a supersession is visible where the log is read. | New file with the header, the index and the entry shape below. Seed it with a retrofit entry if a spec exists first. | Append-only; a correction is a dated addendum. |
-| 5 | `docs/project_ledger.md` | Current state. Four categories (Resolved behavior, Confirmed live/system facts, Open implementation details, Out of scope), plus an "Up next" section that opens with a cold-start block, plus Dependencies and Pending Live Verification. | New file with these sections. | In place, with the correction visible; updated in the same step as any commit, push, review refresh or finished step. Never write the hash of HEAD in it. |
-| 6 | `docs/User_Story_Template.md` | How new work starts: story, observation, facts, constraints, risk, success criteria; Claude's one-question-at-a-time conversation and the Requirement / Assumption / Open labels. | Copy; replace the few MacroQuest-specific lines. | Rarely. |
-| 7 | `docs/lessons_learned.md` | Running log of lessons for a release retrospective; Triage left blank until then. | New file with the header and the how-it-works notes. | Append-only; annotate, never delete. |
-| 8 | `docs/New_Project_Kit.md` (this file) | The checklist for the next project. | Copy and keep current. | When any of the above changes shape. |
+These carry the rules, not the state. Copy them into the new repository and adapt only what is named.
+
+| Document | Job | How to adapt | Update rule |
+| --- | --- | --- | --- |
+| `docs/Development_Protocol.txt` | The process contract (22 sections). | Swap the few runtime-specific spots listed below. | Changed only by the developer, at a retrospective. |
+| `CLAUDE.md` | The working agreement loaded every session: a summary of the Protocol's core rules, plus the rules about the reviewer, handoff headers, commits and pushes. | Keep the portable sections (table below); rewrite the project-specific ones. | In step with the code and the ledger (Protocol section 18). |
+| `docs/User_Story_Template.md` | How new work starts: story, observation, facts, constraints, risk, success criteria; Claude's one-question-at-a-time conversation and the Requirement / Assumption / Open labels. | Replace the few MacroQuest-specific lines. | Rarely. |
+| `docs/New_Project_Kit.md` (this file) | The checklist for the next project. | Keep as is. | When any document of the method changes shape. |
+
+## Documents each project creates for itself (the project's own state)
+
+A new project does not inherit these. Each starts empty, and the project's first story fills them. Copying this project's versions would import this project's history and facts.
+
+| Document | Job | What it starts as | Update rule |
+| --- | --- | --- | --- |
+| `SPEC.md` | What the system must do; authoritative. Confirmed facts, requirements, non-goals, a roadmap with checkable phase gates, risks and spikes. | Written from the first approved story and its acceptance criteria. | In place, never silently, with dated `[CLARIFIED]` or `[CORRECTED]` markers; re-read end to end before release or handoff (section 18). |
+| `docs/decision_log.md` | Why each material decision was made. | A header naming the Protocol section 2 shape (Requirement / Design choices / Implementation choices / Open), an empty "Active overrides index" so a supersession is visible where the log is read, then DL-001 (a retrofit entry if a spec existed first). | Append-only; a correction is a dated addendum. |
+| `docs/project_ledger.md` | Current state. | Four categories (Resolved behavior, Confirmed live/system facts, Open implementation details, Out of scope), an "Up next" section that opens with a cold-start block, Dependencies, and Pending Live Verification. | In place, with the correction visible; updated in the same step as any commit, push, review refresh or finished step. Never write the hash of HEAD in it. |
+| `docs/lessons_learned.md` | Running log of lessons for a release retrospective. | A header explaining that it is not the Protocol, the Area / Suggested / Triage fields, and no entries. Triage stays blank until the retrospective. | Append-only; annotate, never delete. |
+
+Because these four are created, not copied, the method depends on the new project knowing their shape. That shape is described in the Protocol (sections 2 and 11), in the story template (the entry shape) and in the table above; no blank files exist (see the gaps).
+
 
 Not documents but part of the method, outside or beside the repository:
 
