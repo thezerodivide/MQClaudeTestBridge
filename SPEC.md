@@ -104,7 +104,7 @@ The MCP server, `mq-mcp`, is a small Python program on the PC that turns bridge 
 | `run_test` | Run a test file end to end and return a pass or fail report (see next section) |
 | `mq_halt` | Kill switch from Claude's side |
 
-**Configuration** lives in one `config.toml`: folder paths, the character name, poll interval, and default timeouts. Nothing is hard-coded, which keeps the path open to a public release.
+**Configuration** lives in one `config.toml`: folder paths, the character name, poll interval, and default timeouts. Nothing is hard-coded, which keeps the path open to a public release. [CLARIFIED 2026-10-04, DL-022 decision 20: 'nothing is hard-coded' now means that nothing is fixed, not that nothing has a default. The MCP server has overridable code defaults for the confirmed v1 installation: the MacroQuest root `C:\Users\Public\MacroQuest`, `bridge_dir` as `<root>\claude`, `log_dir` as `<root>\Logs\claudebridge`, `heartbeat_max_age_s` 20, `reply_timeout_s` 30 and `game_process_name` `eqgame.exe`; every one can be set in `config.toml`, which may be empty, so the path to a public release stays open. Revisit trigger: before a public release (Phase 4), or the first install in a non-default location.]
 
 **Packaging.** The MCP server, the bridge files, and a skill describing the test loop live in one Claude Code project, and can later be packaged as a plugin. The skill tells Claude how to work: run the testability check, write and run tests, read the reports, and hand Shane a findings list. When Shane asks for fixes, Claude edits, reloads and reruns until green or a retry limit is hit.
 
