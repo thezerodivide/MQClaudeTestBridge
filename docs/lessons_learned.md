@@ -100,3 +100,12 @@ How this log works:
 - **Evidence:** the DL-022 addenda of 2026-09-30 on spike 12 (three rounds); the reviewer's reads; the developer's decision to consolidate.
 - **Suggested:** CLAUDE.md, two rules. (1) When a reviewer reports one instance of an error, search the whole artifact for the class and fix it in one place (a shared helper), and say in the reply which other places were checked. (2) When writing a fake of a library, model the library's documented contract, and read that documentation first, since a fake written from memory by the same author as the code can share the author's mistake; the live run stays the authority. Also: apply the overengineering call-out at the second round of hardening a bounded risk, not the third.
 - **Triage:**
+
+
+### LL-012 — A push went out after the safety scan flagged it, because the commands were chained with `;` (2026-10-04)
+
+- **Area:** AI-behavior
+- **What happened:** Claude added a decision-log note that contained the developer's personal Windows folder path. The pre-push scan flagged it (one hit). Claude wrote a script to remove the text; the script failed (a backslash escape error in its own Python string, the same class as LL-001, LL-002 and LL-007). The commit and push were chained after it with `;`, not `&&`, so they ran anyway, and commit `390e065` published the path to the public repository. The Safety Gate in `CLAUDE.md` says that if the scan finds anything Claude stops before pushing; the scan result was seen and not acted on, because the next command was already queued. A later scan and read-back showed the text still in `HEAD`, so a follow-up commit was needed. The developer chose to fix the current text and leave the history (option 1), accepting that the old text stays reachable in the commit.
+- **Evidence:** commit `390e065` (the only commit whose diff adds the text); the failed script output; the `git grep` of `HEAD` showing the text still present; the developer's decision of 2026-10-04.
+- **Suggested:** CLAUDE.md. (1) Make the safety scan a hard condition of the push command itself: run the scan, capture its output, and run commit and push only if the output is empty, in one command that stops on any failure, never chained with `;`. (2) After any scripted edit, check that the script succeeded and read back the edited text before staging (extends LL-002 and LL-007). (3) Never write the developer's personal path into a document that will be pushed; describe the location instead.
+- **Triage:**
