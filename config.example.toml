@@ -1,0 +1,14 @@
+# Copy this file to config.toml (git-ignored, machine-specific) and edit it. Every key is optional: an empty
+# config.toml is valid and gives exactly the values below, which are the defaults for the confirmed v1 installation
+# (DL-022 decision 20). An unknown key is refused (decision 21), so a typo cannot silently fall back to a default.
+
+# Absolute Windows paths. No existence check is made when the file is loaded.
+bridge_dir = 'C:\Users\Public\MacroQuest\claude'
+log_dir = 'C:\Users\Public\MacroQuest\Logs\claudebridge'
+
+# Finite numbers greater than zero, in seconds.
+heartbeat_max_age_s = 20
+reply_timeout_s = 30
+
+# The game's process name, as `tasklist` shows it. Must not be blank.
+game_process_name = 'eqgame.exe'
