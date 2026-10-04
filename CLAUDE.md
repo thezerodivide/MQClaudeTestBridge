@@ -38,7 +38,7 @@ Full text: [docs/Development_Protocol.txt](docs/Development_Protocol.txt). These
 
 **One change at a time (§6).** Implement → diagnostic review → spec comparison → local tests → inspect evidence as an outside developer → only then hand off for live testing.
 
-**Test requirements, not code paths (§7).** Every test cites its source (a decision log ID, a spec section, a real log line) — never an expected value derived by running the code and pasting the output. Logic-heavy tests need a mutation check: prove the test actually fails when the protected behavior breaks.
+**Test requirements, not code paths (§7).** Tests are written first, from the requirement, and watched failing for the right reason before the implementation exists (the practice recorded in DL-022's build order; the eight-step order is in the New Project Template's `test/README.md`). Every test cites its source (a decision log ID, a spec section, a real log line) — never an expected value derived by running the code and pasting the output. Logic-heavy tests need a mutation check: prove the test actually fails when the protected behavior breaks.
 
 **Test-build diagnostics (§8).** Verbose logging by default. Log every command/message sent with its reason, not just the decision. Design diagnostics to distinguish an operator/config mistake from a code defect — a symptom that looks like a bug can be a misconfiguration instead.
 
